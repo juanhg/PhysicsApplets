@@ -4,3 +4,6 @@
 [submodule "src/com/raccoon/easyjchart"]
 	path = src/com/raccoon/easyjchart
 	url = https://github.com/klyone/EasyJChart.git
+[submodule "EasyJChart"]
+	path = EasyJChart
+	url = https://github.com/klyone/EasyJChart.git
