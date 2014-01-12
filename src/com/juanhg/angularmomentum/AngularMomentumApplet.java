@@ -57,6 +57,9 @@ import javax.swing.border.MatteBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import com.raccoon.easyjchart.JPanelGrafica;
+import com.raccoon.easyjchart.*;
+
 public class AngularMomentumApplet extends JApplet implements Runnable {
 	
 	private static final long serialVersionUID = -3261548917574875054L;

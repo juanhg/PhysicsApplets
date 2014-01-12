@@ -1,8 +1,10 @@
-package com.juanhg.momentoangular;
+package com.juanhg.angularmomentum;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.juanhg.util.*;
 
 /**
  *   @file   AngularMomentumModel.java
