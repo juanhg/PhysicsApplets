@@ -1,5 +1,4 @@
-/*  Name: AngularMomentumApplet
- 	-----------------------------------------------------------------
+/*  -----------------------------------------------------------------
  	 @file   AngularMomentumApplet.java
      @author Juan Hernandez Garcia 
      @brief Applet that simulates the movement of a planet around a star. 
