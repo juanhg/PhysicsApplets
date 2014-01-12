@@ -1,0 +1,3 @@
+[submodule "com/raccoon/easyjchart"]
+	path = com/raccoon/easyjchart
+	url = https://github.com/klyone/EasyJChart.git
