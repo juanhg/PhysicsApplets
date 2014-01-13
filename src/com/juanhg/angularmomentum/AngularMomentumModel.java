@@ -41,8 +41,10 @@ import com.juanhg.util.PolarPoint2D;
  */
 public class AngularMomentumModel extends Model {
 	
-//	final static double simulaciones = 21000000;
-	final static double simulaciones = 500;
+	//final static double simulaciones = 2100;
+	final static double simulaciones = 1000;
+	
+	double actualSimulation = 0;
 
 	//Initial Mass of the star
 	double initMass;
@@ -115,13 +117,23 @@ public class AngularMomentumModel extends Model {
 		
 		final double VoModifier = 5.9*Math.pow(10.0, 24);
 		
-		if(initMass <= 0 || velocity <= 0){
-			System.err.println("Initial Mass and Velocity must be positive values");
+		if(initMass < 0.1 || initMass > 30){
+			System.err.println("Initial Mass must be in the range [0.1,30]");
 			System.exit(1);
 		}
 		
-		if(finalMass >= 1){
-			System.err.println("The % of final Mass can't be 1 or superior!!");
+		if(velocity < 0.001 || velocity > 1){
+			System.err.println("Velocity must be in the range [0.001, 1]");
+			System.exit(2);
+		}
+		
+		if(finalMass < 0.05 || finalMass > 6){
+			System.err.println("The % of final Mass must be in the range [0.05, 6]");
+			System.exit(3);
+		}
+		
+		if(distance < 0.3 || distance > 50){
+			System.err.println("The initial radio must be in the range [0.3, 50]");
 			System.exit(3);
 		}
 		
@@ -136,7 +148,7 @@ public class AngularMomentumModel extends Model {
 		this.phi = 0;
 		this.finalTime = (1 - this.finalMass)/this.velocity;
 		this.dt = finalTime/simulaciones;
-		this.dMass = (this.initMass - (this.initMass*this.finalMass))/simulaciones;
+		this.dMass = ((this.initMass*this.finalMass))/simulaciones;
 		this.Vo = Math.sqrt(VoModifier*(this.initMass/this.initDistance));
 				
 		// Initial point of trajectory (where the planet begins) 
@@ -150,6 +162,7 @@ public class AngularMomentumModel extends Model {
 	public void simulate() {
 		double term1, term2, term3, term4, term5;
 		PolarPoint2D polarCoordinates;
+		actualSimulation++;
 		
 		//Increments the actual time
 		actualTime += dt;

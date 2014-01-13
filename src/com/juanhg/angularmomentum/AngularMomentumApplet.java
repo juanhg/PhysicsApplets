@@ -119,15 +119,15 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		
 		grafica = new Grafica(model.getPlanetAsArray(),"Conservación del Momento Angular", "Planeta", "Coordenada X", "Coordenada Y", false, Color.BLUE,1f,false);
 		grafica.agregarGrafica(model.getTrajectoryAsArray(), "Trayectoria", Color.RED, 1f,false);
-		grafica.agregarGrafica(model.getStarAsArray(), "Star", Color.RED,1f,false);
-		grafica.agregarGrafica(model.getStarAsArray(), "Star2", Color.ORANGE,1f,false);
-		grafica.agregarGrafica(model.getStarAsArray(), "Star3", Color.YELLOW,1f,false);
+		//grafica.agregarGrafica(model.getStarAsArray(), "Star", Color.RED,1f,false);
+		//grafica.agregarGrafica(model.getStarAsArray(), "Star2", Color.ORANGE,1f,false);
+		grafica.agregarGrafica(model.getStarAsArray(), "Star3", new Color(255,255,0),1f,false);
 		grafica.fijaFondo(Color.WHITE);
         grafica.visualizaMuestras(0,true,5);
         grafica.visualizaMuestras(1,true,1);
-        grafica.visualizaMuestras(2, true, 10);
-        grafica.visualizaMuestras(3, true, 25);
-        grafica.visualizaMuestras(4, true, 40);
+        grafica.visualizaMuestras(2, true, 40);
+        //grafica.visualizaMuestras(3, true, 25);
+        //grafica.visualizaMuestras(4, true, 40);
         
         grafica.fijaRango(-5,5,0,0);
         grafica.fijaRango(-5,5,0,1);
@@ -474,12 +474,28 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 	@Override
 	public void run() {
 
+		double dColor = model.getFinalTime()/255;
+		int colorGreen = 0;
+		
 		while(true){
+			
+			if(!model.finalTimeReached()){
+			colorGreen = 255 - ((int) (model.getActualTime()/dColor));
+			}
+			else{
+				colorGreen = 0;
+			}
+			
+			System.out.println(colorGreen);
+			
 			grafica.replacePlot(0,model.getPlanetAsArray(),"Planeta", Color.BLUE,1f,false);
 			grafica.replacePlot(1,model.getTrajectoryAsArray(), "Trayectoria", Color.RED, 1f,false);
 
+			grafica.replacePlot(2,model.getStarAsArray(), "Star3", new Color(255,colorGreen,0),1f,false);
+			
 			grafica.visualizaMuestras(0,true,5);
 			grafica.visualizaMuestras(1,true,1);
+			grafica.visualizaMuestras(2,true,40);
 
 
 			panelSimulacion.actualizaGrafica(grafica);
