@@ -1,0 +1,1 @@
+Image obtained from: http://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Pleiades_large.jpg/1280px-Pleiades_large.jpg

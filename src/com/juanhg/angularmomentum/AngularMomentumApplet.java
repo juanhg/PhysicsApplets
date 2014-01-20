@@ -46,7 +46,6 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
-import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.CompoundBorder;
@@ -56,19 +55,24 @@ import javax.swing.border.MatteBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
-import com.raccoon.easyjchart.*;
 
 public class AngularMomentumApplet extends JApplet implements Runnable {
 	
 	private static final long serialVersionUID = -3261548917574875054L;
-	private JTextField textInitMass;
-	private JTextField textFinalMass;
-	private JTextField textDistance;
-	private JTextField textVelocity;
-	private JSlider sliderPlotBackGround;
+
 	
-	long sleepTime = 200;
+	int supXLimit = 1;
+	int infXLimit = -1;
+	int supYLimit = 1;
+	int infYLimit = -1;
+	
+	double sleepTime = 50;
+	int zoom = 1;
+	boolean end = false;
+	
+	double starInitSize = 50;
 	
 	JPanelGrafica panelSimulacion;
 	
@@ -92,11 +96,23 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
      * Contiene la grÃ¡fica que representa a la onda en la cuerda.
      */
     private Grafica grafica;
-    private JLabel textOutput3;
+    private JLabel lblPeriodValue;
     private JLabel textFinalTime;
     private JLabel textFinalRadius;
-    JLabel labelActualTime; 
-	
+    private JLabel labelActualTime; 
+    JLabel lblIteracinActual;
+    JLabel lblFinalMassValue, lblDistanceValue, lblVelocityValue, lblInitMassValue;
+    JLabel lblActualSimulationValue;
+    
+    private JSlider sliderInitMass; 
+    private JSlider sliderFinalMass;
+    private JSlider sliderDistance;
+    private JSlider sliderVelocity;
+	private JSlider sliderPlotBackGround;
+	private JSlider sliderSimulations;
+	private JLabel lblSimulaciones;
+    
+   
 	public AngularMomentumApplet() {}
 
 	public void init(){
@@ -112,31 +128,11 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
         repaint();
 	}
 	
+	
 	public void initComponents(){
-		setSize(1200,565);
+		setSize(1050,565);
+
 		
-		model = new AngularMomentumModel();
-		
-		grafica = new Grafica(model.getPlanetAsArray(),"Conservación del Momento Angular", "Planeta", "Coordenada X", "Coordenada Y", false, Color.BLUE,1f,false);
-		grafica.agregarGrafica(model.getTrajectoryAsArray(), "Trayectoria", Color.RED, 1f,false);
-		//grafica.agregarGrafica(model.getStarAsArray(), "Star", Color.RED,1f,false);
-		//grafica.agregarGrafica(model.getStarAsArray(), "Star2", Color.ORANGE,1f,false);
-		grafica.agregarGrafica(model.getStarAsArray(), "Star3", new Color(255,255,0),1f,false);
-		grafica.fijaFondo(Color.WHITE);
-        grafica.visualizaMuestras(0,true,5);
-        grafica.visualizaMuestras(1,true,1);
-        grafica.visualizaMuestras(2, true, 40);
-        //grafica.visualizaMuestras(3, true, 25);
-        //grafica.visualizaMuestras(4, true, 40);
-        
-        grafica.fijaRango(-5,5,0,0);
-        grafica.fijaRango(-5,5,0,1);
-        try {
-			grafica.setBackGroundImage("D:\\EclipseWorkSpace\\Applets\\AppletsFisica\\res\\plotImg2.jpg",0.9f);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
         
 		
 		
@@ -151,13 +147,6 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		panelTiempo.setToolTipText("");
 		panelTiempo.setBorder(new MatteBorder(1, 1, 1, 1, (Color) new Color(0, 0, 0)));
 		
-		JPanel panelTitleSimulacion = new JPanel();
-		panelTitleSimulacion.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
-		
-		JLabel labelInputData = new JLabel("Visibilidad del Fondo");
-		labelInputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		panelTitleSimulacion.add(labelInputData);
-		
 		sliderPlotBackGround = new JSlider();
 		sliderPlotBackGround.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
@@ -167,22 +156,52 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		sliderPlotBackGround.setValue(10);
 		sliderPlotBackGround.setMinorTickSpacing(1);
 		sliderPlotBackGround.setMaximum(10);
+		
+		sliderSimulations = new JSlider();
+		sliderSimulations.setMinimum(1);
+		sliderSimulations.setMaximum(2000);
+		sliderSimulations.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent event) {
+				sliderSimulationsEvent();
+			}
+		});
+		
+		sliderSimulations.setValue(600);
+		
+		JLabel lblVisibilidadDelFondo = new JLabel("Visibilidad del Fondo");
+		lblVisibilidadDelFondo.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		
+		lblSimulaciones = new JLabel("Simulaciones:  600");
+		lblSimulaciones.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		GroupLayout gl_panelTiempo = new GroupLayout(panelTiempo);
 		gl_panelTiempo.setHorizontalGroup(
 			gl_panelTiempo.createParallelGroup(Alignment.LEADING)
-				.addComponent(panelTitleSimulacion, GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE)
 				.addGroup(gl_panelTiempo.createSequentialGroup()
-					.addGap(96)
-					.addComponent(sliderPlotBackGround, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(104, Short.MAX_VALUE))
+					.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelTiempo.createSequentialGroup()
+							.addGap(10)
+							.addComponent(sliderPlotBackGround, GroupLayout.PREFERRED_SIZE, 171, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_panelTiempo.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(lblVisibilidadDelFondo)))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelTiempo.createParallelGroup(Alignment.TRAILING)
+						.addComponent(sliderSimulations, GroupLayout.DEFAULT_SIZE, 199, Short.MAX_VALUE)
+						.addComponent(lblSimulaciones, GroupLayout.DEFAULT_SIZE, 199, Short.MAX_VALUE))
+					.addContainerGap())
 		);
 		gl_panelTiempo.setVerticalGroup(
 			gl_panelTiempo.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panelTiempo.createSequentialGroup()
-					.addComponent(panelTitleSimulacion, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+					.addGroup(gl_panelTiempo.createParallelGroup(Alignment.BASELINE)
+						.addComponent(lblVisibilidadDelFondo)
+						.addComponent(lblSimulaciones, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE))
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(sliderPlotBackGround, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addGap(10))
+					.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+						.addComponent(sliderPlotBackGround, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(sliderSimulations, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addContainerGap())
 		);
 		panelTiempo.setLayout(gl_panelTiempo);
 		
@@ -200,25 +219,25 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		labelOutputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panelTitleOutputs.add(labelOutputData);
 		
-		JLabel labelTiempoFinal = new JLabel("Tiempo Final");
+		JLabel labelTiempoFinal = new JLabel("Tiempo Final:");
 		labelTiempoFinal.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel labelOutput3 = new JLabel("T");
+		JLabel labelOutput3 = new JLabel("T:");
 		labelOutput3.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel labelOutput2 = new JLabel("Radio Final");
+		JLabel labelOutput2 = new JLabel("Radio Final:");
 		labelOutput2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		textOutput3 = new JLabel();
-		textOutput3.setText("0");
-		textOutput3.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblPeriodValue = new JLabel();
+		lblPeriodValue.setText("0");
+		lblPeriodValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		textFinalTime = new JLabel();
 		textFinalTime.setText("0");
 		textFinalTime.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		textFinalRadius = new JLabel();
-		textFinalRadius.setText("...");
+		textFinalRadius.setText("0");
 		textFinalRadius.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel labelTime = new JLabel("Tiempo Actual:");
@@ -226,48 +245,73 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		
 		labelActualTime = new JLabel("0");
 		labelActualTime.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblIteracinActual = new JLabel("Simulaci\u00F3n Actual");
+		lblIteracinActual.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblActualSimulationValue = new JLabel("0");
+		lblActualSimulationValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
-			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE)
+			gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_panelOutputs.createSequentialGroup()
+					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, 404, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 				.addGroup(gl_panelOutputs.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
-							.addComponent(labelTiempoFinal, GroupLayout.DEFAULT_SIZE, 139, Short.MAX_VALUE)
-							.addComponent(labelOutput3, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-							.addComponent(labelOutput2, GroupLayout.PREFERRED_SIZE, 68, GroupLayout.PREFERRED_SIZE))
-						.addComponent(labelTime))
-					.addGap(18)
+						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(labelTiempoFinal, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+									.addPreferredGap(ComponentPlacement.RELATED))
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(labelTime)
+									.addGap(27)))
+							.addGroup(gl_panelOutputs.createSequentialGroup()
+								.addComponent(labelOutput3, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
+								.addGap(70)))
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addComponent(labelOutput2, GroupLayout.PREFERRED_SIZE, 68, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)))
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(labelActualTime, GroupLayout.PREFERRED_SIZE, 92, GroupLayout.PREFERRED_SIZE)
-						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
-							.addComponent(textOutput3, 0, 0, Short.MAX_VALUE)
-							.addComponent(textFinalTime, GroupLayout.PREFERRED_SIZE, 223, GroupLayout.PREFERRED_SIZE))
-						.addComponent(textFinalRadius, GroupLayout.PREFERRED_SIZE, 223, GroupLayout.PREFERRED_SIZE))
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+						.addGroup(Alignment.TRAILING, gl_panelOutputs.createSequentialGroup()
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
+								.addComponent(textFinalRadius, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(textFinalTime, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(labelActualTime, GroupLayout.DEFAULT_SIZE, 106, Short.MAX_VALUE))
+							.addGap(18)
+							.addComponent(lblActualSimulationValue, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
+							.addGap(4))
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addComponent(lblPeriodValue, GroupLayout.PREFERRED_SIZE, 93, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(lblIteracinActual)
+							.addContainerGap())))
 		);
 		gl_panelOutputs.setVerticalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
 					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 						.addComponent(labelTiempoFinal)
 						.addComponent(textFinalTime))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelOutput2)
-						.addComponent(textFinalRadius, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-					.addGap(9)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelOutput3)
-						.addComponent(textOutput3))
+						.addComponent(labelTime, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE)
+						.addComponent(labelActualTime))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelTime, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE)
-						.addComponent(labelActualTime))
-					.addContainerGap(23, Short.MAX_VALUE))
+						.addComponent(labelOutput3)
+						.addComponent(lblPeriodValue)
+						.addComponent(lblIteracinActual))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+						.addComponent(textFinalRadius, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(labelOutput2)
+						.addComponent(lblActualSimulationValue))
+					.addGap(20))
 		);
 		panelOutputs.setLayout(gl_panelOutputs);
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);
@@ -275,12 +319,12 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 			gl_panel_control.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panel_control.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
-						.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 402, Short.MAX_VALUE)
-						.addComponent(panelButtons, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addComponent(panelTiempo, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 402, Short.MAX_VALUE)
-						.addComponent(panelInputs, 0, 0, Short.MAX_VALUE))
-					.addGap(427))
+					.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
+						.addComponent(panelTiempo, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
+						.addComponent(panelButtons, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
+						.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 404, Short.MAX_VALUE)
+						.addComponent(panelInputs, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE))
+					.addContainerGap())
 		);
 		gl_panel_control.setVerticalGroup(
 			gl_panel_control.createParallelGroup(Alignment.LEADING)
@@ -320,18 +364,8 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		JLabel LabelInitMass = new JLabel("Masa Inicial");
 		LabelInitMass.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		textInitMass = new JTextField();
-		textInitMass.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		textInitMass.setText("3");
-		textInitMass.setColumns(10);
-		
-		JLabel labelFinalMass = new JLabel("Masa Final");
+		JLabel labelFinalMass = new JLabel("% de Masa Final");
 		labelFinalMass.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		textFinalMass = new JTextField();
-		textFinalMass.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		textFinalMass.setText("0.3");
-		textFinalMass.setColumns(10);
 		
 		JLabel labelDistance = new JLabel("Distancia al Centro");
 		labelDistance.setFont(new Font("Tahoma", Font.PLAIN, 14));
@@ -339,58 +373,134 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		JLabel labelVelocity = new JLabel("Velocidad de P\u00E9rdida");
 		labelVelocity.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		textDistance = new JTextField();
-		textDistance.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		textDistance.setText("10");
-		textDistance.setColumns(3);
-		
-		textVelocity = new JTextField();
-		textVelocity.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		textVelocity.setText("0.2");
-		textVelocity.setColumns(10);
-		
 		JPanel panelTitle = new JPanel();
 		panelTitle.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
+		
+		lblFinalMassValue = new JLabel("0.6");
+		lblFinalMassValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblDistanceValue = new JLabel("10");
+		lblDistanceValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblVelocityValue = new JLabel("0.2");
+		lblVelocityValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		
+		lblInitMassValue = new JLabel("2.0");
+		lblInitMassValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		
+		sliderInitMass = new JSlider();
+		sliderInitMass.setValue(20);
+		sliderInitMass.setMinimum(5);
+		sliderInitMass.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent event) {
+				sliderInitMassEvent();
+			}
+		});
+		sliderInitMass.setMaximum(500);
+		
+		sliderFinalMass = new JSlider();
+		sliderFinalMass.setMinimum(60);
+		sliderFinalMass.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				sliderFinalMassEvent();
+			}
+		});
+		sliderFinalMass.setValue(30);
+		sliderFinalMass.setMinorTickSpacing(1);
+		sliderFinalMass.setMaximum(95);
+		
+		sliderDistance = new JSlider();
+		sliderDistance.setValue(100);
+		sliderDistance.setMaximum(500);
+		sliderDistance.setMinimum(3);
+		sliderDistance.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				sliderDistanceEvent();
+			}
+		});
+		sliderDistance.setMinorTickSpacing(1);
+		
+		sliderVelocity = new JSlider();
+		sliderVelocity.setMaximum(1000);
+		sliderVelocity.setMinimum(1);
+		sliderVelocity.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				sliderVelocityEvent();
+			}
+		});
+		sliderVelocity.setValue(200);
+		sliderVelocity.setMinorTickSpacing(1);
+	
+		
+		
+		
 		GroupLayout gl_panelInputs = new GroupLayout(panelInputs);
 		gl_panelInputs.setHorizontalGroup(
 			gl_panelInputs.createParallelGroup(Alignment.LEADING)
-				.addComponent(panelTitle, GroupLayout.DEFAULT_SIZE, 419, Short.MAX_VALUE)
+				.addComponent(panelTitle, GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE)
 				.addGroup(gl_panelInputs.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING, false)
-						.addComponent(LabelInitMass, GroupLayout.DEFAULT_SIZE, 139, Short.MAX_VALUE)
-						.addComponent(labelDistance, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addComponent(labelVelocity, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addComponent(labelFinalMass, GroupLayout.PREFERRED_SIZE, 68, GroupLayout.PREFERRED_SIZE))
-					.addGap(18)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING, false)
-						.addComponent(textDistance, 0, 0, Short.MAX_VALUE)
-						.addComponent(textVelocity, GroupLayout.DEFAULT_SIZE, 51, Short.MAX_VALUE)
-						.addComponent(textFinalMass, GroupLayout.DEFAULT_SIZE, 71, Short.MAX_VALUE)
-						.addComponent(textInitMass, GroupLayout.PREFERRED_SIZE, 223, GroupLayout.PREFERRED_SIZE))
-					.addContainerGap(29, Short.MAX_VALUE))
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(LabelInitMass, GroupLayout.PREFERRED_SIZE, 129, GroupLayout.PREFERRED_SIZE)
+						.addComponent(labelDistance, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 154, GroupLayout.PREFERRED_SIZE)
+						.addComponent(labelVelocity, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
+						.addComponent(labelFinalMass, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelInputs.createSequentialGroup()
+							.addComponent(lblInitMassValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED, 18, Short.MAX_VALUE)
+							.addComponent(sliderInitMass, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE))
+						.addGroup(Alignment.TRAILING, gl_panelInputs.createSequentialGroup()
+							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+								.addComponent(lblFinalMassValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblDistanceValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE))
+							.addGap(18)
+							.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
+								.addComponent(sliderFinalMass, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE)
+								.addComponent(sliderDistance, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE)))
+						.addGroup(gl_panelInputs.createSequentialGroup()
+							.addComponent(lblVelocityValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+							.addGap(18)
+							.addComponent(sliderVelocity, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE)))
+					.addContainerGap())
 		);
 		gl_panelInputs.setVerticalGroup(
 			gl_panelInputs.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panelInputs.createSequentialGroup()
 					.addComponent(panelTitle, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(LabelInitMass)
-						.addComponent(textInitMass, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelFinalMass)
-						.addComponent(textFinalMass, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(9)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelDistance)
-						.addComponent(textDistance, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(6)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelVelocity)
-						.addComponent(textVelocity, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addContainerGap(43, Short.MAX_VALUE))
+					.addGap(8)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelInputs.createSequentialGroup()
+							.addGap(29)
+							.addComponent(lblFinalMassValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_panelInputs.createSequentialGroup()
+							.addComponent(sliderInitMass, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(sliderFinalMass, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_panelInputs.createSequentialGroup()
+							.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+								.addComponent(lblInitMassValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(LabelInitMass))
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(labelFinalMass)))
+					.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(sliderDistance, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+							.addComponent(lblDistanceValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+							.addComponent(labelDistance)))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelInputs.createSequentialGroup()
+							.addGap(1)
+							.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+								.addComponent(lblVelocityValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(labelVelocity)))
+						.addComponent(sliderVelocity, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addGap(28))
 		);
 		
 		JLabel lblDatosDeEntrada = new JLabel("Datos de Entrada");
@@ -409,14 +519,14 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 					.addContainerGap()
 					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, 432, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panel_visualizar, GroupLayout.DEFAULT_SIZE, 752, Short.MAX_VALUE)
-					.addContainerGap())
+					.addComponent(panel_visualizar, GroupLayout.PREFERRED_SIZE, 569, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(33, Short.MAX_VALUE))
 		);
 		groupLayout.setVerticalGroup(
 			groupLayout.createParallelGroup(Alignment.TRAILING)
 				.addGroup(groupLayout.createSequentialGroup()
-					.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-						.addComponent(panel_visualizar, GroupLayout.DEFAULT_SIZE, 554, Short.MAX_VALUE)
+					.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING)
+						.addComponent(panel_visualizar, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 554, Short.MAX_VALUE)
 						.addComponent(panel_control, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 					.addContainerGap())
 		);
@@ -436,6 +546,42 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		panel_visualizar.add(panelSimulacion, gbc_panelSimulacion);
 		getContentPane().setLayout(groupLayout);
 		
+		
+		//Obtain values from interface
+				double initMass = this.sliderInitMass.getValue()/10.0;
+				double finalMass = this.sliderFinalMass.getValue()/100.0;
+				double velocity = this.sliderVelocity.getValue()/1000.0;
+				double distance = this.sliderDistance.getValue()/10.0;
+
+				int simulations = this.sliderSimulations.getValue();
+
+				//Crear modelo
+				model = new AngularMomentumModel(initMass, finalMass, velocity, distance, simulations);
+				
+				grafica = new Grafica(model.getPlanetAsArray(),"Conservación del Momento Angular", "Planeta", "Coordenada X", "Coordenada Y", false, Color.BLUE,1f,false);
+				grafica.agregarGrafica(model.getTrajectoryAsArray(), "Trayectoria", Color.RED, 1f,false);
+				//grafica.agregarGrafica(model.getStarAsArray(), "Star", Color.RED,1f,false);
+				//grafica.agregarGrafica(model.getStarAsArray(), "Star2", Color.ORANGE,1f,false);
+				grafica.agregarGrafica(model.getStarAsArray(), "Star3", new Color(255,255,0),1f,false);
+				grafica.fijaFondo(Color.WHITE);
+		        grafica.visualizaMuestras(0,true,5);
+		        grafica.visualizaMuestras(1,true,1);
+		        grafica.visualizaMuestras(2, true, starInitSize/1.45);
+		    
+		        
+		        zoom = this.getZoom(model.getPlanet(), supXLimit, infXLimit, supYLimit, infYLimit);
+		        grafica.setRangeAxis(infXLimit*zoom, supXLimit*zoom, infYLimit*zoom, supYLimit*zoom);
+		     
+			    
+		        try {
+					grafica.setBackGroundImage("../img/pleyades2.jpg",0.9f);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+		
+		
+		
 		panelSimulacion.actualizaGrafica(grafica);
 		
 	}
@@ -443,14 +589,24 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 	
 	void btnLaunchSimulationEvent(ActionEvent event){
 		
+		 if(flujo != null && flujo.isAlive()) {
+	            end = true;
+	            while(flujo.isAlive()) {}
+	        }
+		
 		//Obtain values from interface
-		double initMass = Double.parseDouble(this.textInitMass.getText());
-		double finalMass = Double.parseDouble(this.textFinalMass.getText());
-		double velocity = Double.parseDouble(this.textVelocity.getText());
-		double distance = Double.parseDouble(this.textDistance.getText());
-
+		double initMass = this.sliderInitMass.getValue()/10.0;
+		double finalMass = this.sliderFinalMass.getValue()/100.0;
+		double velocity = this.sliderVelocity.getValue()/1000.0;
+		double distance = this.sliderDistance.getValue()/10.0;
+		
+		int simulations = this.sliderSimulations.getValue();
+		
        //Crear modelo
-       model = new AngularMomentumModel(initMass, finalMass, velocity, distance);
+       model = new AngularMomentumModel(initMass, finalMass, velocity, distance, simulations);
+       
+       zoom = this.getZoom(model.getPlanet(), supXLimit, infXLimit, supYLimit, infYLimit);
+       grafica.setRangeAxis(infXLimit*zoom, supXLimit*zoom, infYLimit*zoom, supYLimit*zoom);
        
        //Initializes and runs the thread (Run())
        flujo = new Thread();
@@ -458,7 +614,19 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
        flujo.start();
 	}
 	
-	void btnPauseContinueEvent(ActionEvent event){}
+	void btnPauseContinueEvent(ActionEvent event){
+		   if(flujo != null && flujo.isAlive()) {
+	            end = true;
+	            while(flujo.isAlive()) {}
+	        }
+	        else {
+
+	            end = false;
+
+	            flujo = new Thread(this);
+	            flujo.start();
+	        }
+	}
 	
 	void sliderPlotBackgroundEvent(ChangeEvent event){
 		
@@ -470,47 +638,174 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		}
 	}
 	
+	void sliderSimulationsEvent(){
+		
+		if(sliderSimulations.getValueIsAdjusting()){
+			lblSimulaciones.setText("Simulaciones: " + sliderSimulations.getValue());
+			repaint();
+		}
+	}
+	void sliderInitMassEvent(){
+
+		if(sliderInitMass.getValueIsAdjusting()){
+			lblInitMassValue.setText(Double.toString((double)sliderInitMass.getValue()/10.0));
+			sliderVelocity.setMinimum((int)(0.01*((double)sliderInitMass.getValue()/10.0)*1000));
+			sliderVelocity.setMaximum((int)(0.3*((double)sliderInitMass.getValue()/10.0)*1000));
+			lblVelocityValue.setText(Double.toString((double)sliderVelocity.getValue()/1000.0));
+			repaint();
+		}
+	}
+	void sliderVelocityEvent(){
+
+		if(sliderVelocity.getValueIsAdjusting()){
+			lblVelocityValue.setText(Double.toString(((double)sliderVelocity.getValue()/1000.0)));
+			repaint();
+		}
+	}
+	void sliderDistanceEvent(){
+
+		if(sliderDistance.getValueIsAdjusting()){
+			lblDistanceValue.setText(Double.toString((double)sliderDistance.getValue()/10.0));
+			repaint();
+		}
+	}
+	void sliderFinalMassEvent(){
+
+		if(sliderFinalMass.getValueIsAdjusting()){
+			lblFinalMassValue.setText(Double.toString((double)sliderFinalMass.getValue()/100.0));
+			repaint();
+		}
+}
+	
+	void sliderChangeEvent(JSlider slider, JLabel label){
+		if(slider.getValueIsAdjusting()){
+			label.setText(Double.toString(((double)slider.getValue())/10.0));
+			repaint();
+		}
+	}
+	
+	/**
+	 * Calculate the multiplicative zoom that must be applied to the minimum range of the
+	 * plot, to achieve that the point will be drawn inside the plot.
+	 * @param point Point that must be drawn inside the chart
+	 * @param supXLimit Superior X Limit of the plot
+	 * @param infXLimit Inferior X Limit of the plot
+	 * @param supYLimit Superior Y Limit of the plot
+	 * @param infYLimit Inferior Y Limit of the plot
+	 * @return Multiplicative factor that must be applied to the limits of the plot
+	 */
+	int getZoom(Point2D point, int supXLimit, int infXLimit, int supYLimit, int infYLimit){
+		int tempZoom = 1;
+		
+		while(point.getX() >= supXLimit*tempZoom
+		      || point.getY() >= supYLimit*tempZoom
+		      || point.getX() <= infXLimit*tempZoom
+		      || point.getY() <= infYLimit*tempZoom){
+			tempZoom = tempZoom * 2;
+		}
+		
+		return tempZoom;
+	}
+	
+	int obtainExponent(double number){
+		int exponent = 0;
+		
+		while(0 == (int)number){
+			exponent--;
+			number *= 10;
+		}
+		return exponent;
+		
+	}
+	
     
 	@Override
 	public void run() {
 
-		double dColor = model.getFinalTime()/255;
-		int colorGreen = 0;
+		double dColor = ((double)model.getFinalTime()/256.0);
+		int colorGreen = 255;
+		end = false;
+		double dSimulation = 70.0/model.getTotalSimulations();
+		int exp = 0;
 		
-		while(true){
+		while(!end){
 			
-			if(!model.finalTimeReached()){
-			colorGreen = 255 - ((int) (model.getActualTime()/dColor));
+  		if(!model.finalTimeReached()){
+			colorGreen = (255 - ((int) (model.getActualTime()/dColor)));
 			}
 			else{
 				colorGreen = 0;
 			}
 			
-			System.out.println(colorGreen);
+			//System.out.println(colorGreen);
+			
+	
+			if(!model.finalTimeReached()){
+				this.sleepTime += dSimulation;
+			}
+		
 			
 			grafica.replacePlot(0,model.getPlanetAsArray(),"Planeta", Color.BLUE,1f,false);
 			grafica.replacePlot(1,model.getTrajectoryAsArray(), "Trayectoria", Color.RED, 1f,false);
-
 			grafica.replacePlot(2,model.getStarAsArray(), "Star3", new Color(255,colorGreen,0),1f,false);
 			
 			grafica.visualizaMuestras(0,true,5);
 			grafica.visualizaMuestras(1,true,1);
-			grafica.visualizaMuestras(2,true,40);
+			grafica.visualizaMuestras(2,true,((starInitSize+(50*model.getActualDistance()))/zoom));
+			
+			int zoomLastPoint = this.getZoom(model.getPlanet(), supXLimit, infXLimit, supYLimit, infYLimit);
+			if(zoomLastPoint > zoom){
+				zoom = zoomLastPoint;
+			}
+			
+			grafica.setRangeAxis(infXLimit*zoom, supXLimit*zoom, infYLimit*zoom, supYLimit*zoom);
 
 
 			panelSimulacion.actualizaGrafica(grafica);
 
 			model.simulate();
-			textFinalTime.setText(String.valueOf(model.getFinalTime()));
-			textFinalRadius.setText(String.valueOf(model.getFinalDistance()));
-			labelActualTime.setText(String.valueOf(model.getActualTime()));
 			
+			String auxTime;
+			
+			auxTime = String.valueOf((model.getFinalTime()*Math.pow(10.0, model.getVelocityModifier())));
+			exp = obtainExponent((model.getFinalTime()*Math.pow(10.0, model.getVelocityModifier())));
+			if(auxTime.length() > 5){
+				textFinalTime.setText(auxTime.substring(0,5) + " E" + exp);
+			}
+			else{
+				textFinalTime.setText(auxTime + " E" + exp);
+			}
+			
+			textFinalRadius.setText(String.valueOf(model.getFinalDistance()));
+			auxTime = String.valueOf((model.getActualTime()*Math.pow(10.0, model.getVelocityModifier())));
+		    exp = obtainExponent((model.getActualTime()*Math.pow(10.0, model.getVelocityModifier())));
+			if(auxTime.length() > 5){
+				labelActualTime.setText(auxTime.substring(0,5)+ " E" + exp);
+			}
+			else{
+				labelActualTime.setText(auxTime+ " E" + exp);
+			}
+			
+			
+			auxTime = String.valueOf((model.getActualPeriod()));
+			exp = this.obtainExponent(model.getActualPeriod());
+			if(auxTime.length() > 5){
+				lblPeriodValue.setText(auxTime.substring(0,5)+ " E" + exp);
+			}
+			else{
+				lblPeriodValue.setText(auxTime+ " E" + exp);
+			}
+			
+			
+			//lblPeriodValue.setText(String.valueOf(model.getActualPeriod()));
+			
+			lblActualSimulationValue.setText(String.valueOf(model.getActualSimulation()));
 			
 			
 			repaint();
 
 			try {
-				Thread.sleep(sleepTime);
+				Thread.sleep((long)sleepTime);
 			} catch (InterruptedException ex) {
 				Logger.getLogger(AngularMomentumApplet.class.getName()).log(Level.SEVERE, null, ex);
 			}

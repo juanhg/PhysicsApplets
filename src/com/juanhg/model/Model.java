@@ -36,16 +36,19 @@ package com.juanhg.model;
 public abstract class Model {
 
 	//Initial time
-	double initTime;
+	public double initTime;
 
 	//Final time
-	double finalTime;
+	public double finalTime;
 
 	//Actual time
-	double actualTime;
+	public double actualTime;
 
 	//Increment of Time
-	double dt;
+	public double dt;
+	
+	public  int totalSimulations;
+	public int actualSimulation;
 
 	/**
 	 * Function that runs the simulation
@@ -58,4 +61,13 @@ public abstract class Model {
 	 */
 	public abstract boolean finalTimeReached();
 
+	public int getActualSimulation() {
+		return actualSimulation;
+	}
+
+	public int getTotalSimulations() {
+		return totalSimulations;
+	}
+	
+	
 }

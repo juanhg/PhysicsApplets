@@ -41,11 +41,6 @@ import com.juanhg.util.PolarPoint2D;
  */
 public class AngularMomentumModel extends Model {
 	
-	//final static double simulaciones = 2100;
-	final static double simulaciones = 1000;
-	
-	double actualSimulation = 0;
-
 	//Initial Mass of the star
 	double initMass;
 	
@@ -75,15 +70,6 @@ public class AngularMomentumModel extends Model {
 	//Final Angle
 	double finalPhi; 
 	
-	//Initial time
-	double initTime;
-	
-	//Final time
-	double finalTime;
-	
-	//Actual time
-	double actualTime;
-	
 	//Increment of Time
 	double dt;
 	
@@ -92,6 +78,10 @@ public class AngularMomentumModel extends Model {
 	
 	//Initial velocity of the planet
 	double Vo;
+	
+	double ActualPeriod;
+	
+	double velocityModifier;
 	
 	//Trajectory followed by the planet along the simulation
 	List<Point2D> trajectory;
@@ -107,28 +97,31 @@ public class AngularMomentumModel extends Model {
 		this.finalMass = 0;
 		this.velocity = 0;
 		this.initDistance = this.actualDistance  = previousDistance= 0;
+		this.totalSimulations = 1000;
+	
 		
 		// Initial point of trajectory (where the planet begins) 
 		trajectory = new ArrayList<Point2D>();
 		trajectory.add(new Point2D.Double(initDistance, 0));
 	}
 	
-	public AngularMomentumModel(double initMass, double finalMass, double velocity, double distance){
+	public AngularMomentumModel(double initMass, double finalMass, double velocity, double distance, int simulations){
 		
 		final double VoModifier = 5.9*Math.pow(10.0, 24);
+		double temp1, temp2, temp3, temp4;
 		
-		if(initMass < 0.1 || initMass > 30){
+		if(initMass < 0.1 || initMass > 80){
 			System.err.println("Initial Mass must be in the range [0.1,30]");
 			System.exit(1);
 		}
 		
-		if(velocity < 0.001 || velocity > 1){
+		if(velocity < 0.001 || velocity > 15){
 			System.err.println("Velocity must be in the range [0.001, 1]");
 			System.exit(2);
 		}
 		
-		if(finalMass < 0.05 || finalMass > 6){
-			System.err.println("The % of final Mass must be in the range [0.05, 6]");
+		if(finalMass < 0.6 || finalMass > 0.95){
+			System.err.println("The % of final Mass must be in the range [0.05, 0.6]");
 			System.exit(3);
 		}
 		
@@ -140,16 +133,49 @@ public class AngularMomentumModel extends Model {
 		//Inputs values
 		this.initMass = this.actualMass = initMass;
 		this.finalMass = finalMass;
-		this.velocity = velocity;
+		
+		double auxFinalTime = (1 - this.finalMass)/(velocity);
+		velocityModifier = 10.0;
+		
+		
+		if(auxFinalTime > 1){
+			velocityModifier = 10.0;
+		}
+		else if(auxFinalTime < 1.5 && auxFinalTime > 0.5){
+			velocityModifier = 9.0;
+		}
+		else if(auxFinalTime < 0.5 && auxFinalTime > 0.01){
+			velocityModifier = 8.0;
+		}
+		else{
+			velocityModifier = 7.0;
+		}
+		
+		this.velocity = velocity*Math.pow(10.0, velocityModifier);
 		this.initDistance = this.actualDistance = distance;
+		this.totalSimulations = simulations;
 		
 		/** Calculated Values **/
 		this.initTime = this.actualTime =  0;
 		this.phi = 0;
 		this.finalTime = (1 - this.finalMass)/this.velocity;
-		this.dt = finalTime/simulaciones;
-		this.dMass = ((this.initMass*this.finalMass))/simulaciones;
+		this.dt = finalTime/this.totalSimulations;
+		this.dMass = ((this.initMass -(this.initMass*this.finalMass)))/this.totalSimulations;
 		this.Vo = Math.sqrt(VoModifier*(this.initMass/this.initDistance));
+		
+		/* rf */
+		temp1 = this.initDistance;
+		temp2 = 1;
+		temp3 = this.velocity/(this.initMass);
+		temp4 = this.finalTime;
+		this.finalDistance = temp1/(temp2 - (temp3*temp4));
+		
+		
+		temp1 = (2.0*Math.PI);
+		temp2 = Math.pow((1-((this.velocity*this.actualTime)/this.initMass)),2.0);
+		temp3 = this.Vo/(this.initDistance* 1.5*Math.pow(10, 11));
+		temp4 = 1.157*Math.pow(10.0, -5.0);
+		this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
 				
 		// Initial point of trajectory (where the planet begins) 
 		trajectory = new ArrayList<Point2D>();
@@ -161,6 +187,7 @@ public class AngularMomentumModel extends Model {
 	@Override
 	public void simulate() {
 		double term1, term2, term3, term4, term5;
+		double temp1, temp2, temp3, temp4;
 		PolarPoint2D polarCoordinates;
 		actualSimulation++;
 		
@@ -172,34 +199,35 @@ public class AngularMomentumModel extends Model {
 			//Actualizes Mass
 			this.actualMass -= this.dMass;
 			
-			//r
-			this.actualDistance = this.initDistance/(1-(this.velocity/this.actualMass)*this.actualTime);
 			
-			if(this.actualDistance < this.previousDistance){
-				System.err.println("Function out of range!!");
-			}
-			previousDistance = actualDistance;
+			/* r */
+			temp1 = this.initDistance;
+			temp2 = 1;
+			temp3 = this.velocity/(this.initMass);
+			temp4 = this.actualTime;
+			this.actualDistance = temp1/(temp2 - (temp3*temp4));
 			
-			//phi
-			term1 = this.Vo/this.initDistance;
-			term2 = this.actualTime;
-			term3 = (this.velocity * Math.pow(this.actualTime, 2)) / this.initMass;
-			term4 = (Math.pow(this.velocity,2) * Math.pow(this.actualTime, 3)) / this.initMass;
-			term5 = (Math.pow(this.velocity,2) * Math.pow(this.actualTime, 3)) / (3 * Math.pow(this.initMass,2));
-			this.phi = term1 * (term2 - term3 + term4 + term5);
-			this.finalPhi = this.phi;
+			temp1 = (2.0*Math.PI);
+			temp2 = Math.pow((1-((this.velocity*this.actualTime)/this.initMass)),2.0);
+			temp3 = this.Vo/(this.initDistance* 1.5*Math.pow(10, 11));
+			temp4 = 1.157*Math.pow(10.0, -5.0);
+			this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
+			
+				
+			//System.out.print("Phi: " + this.phi);
 		}
-		else{
-			
-			System.out.println("Final Time Reached!!");
-			this.finalDistance = this.actualDistance;
-			
-			term1 = Math.pow((1 -((this.velocity/this.initMass)*this.finalTime)),2.0);
-			term2 = (this.Vo/this.initDistance)*this.actualTime;
-			term3 = this.finalPhi;
-			
-			this.phi = term1*term2+term3;
-		}
+		
+		//phi
+		term1 = this.Vo/this.initDistance;
+		term2 = this.actualTime;
+		term3 = (this.velocity * Math.pow(this.actualTime, 2)) / this.initMass;
+		term4 = (Math.pow(this.velocity,2) * Math.pow(this.actualTime, 3)) / this.initMass;
+		term5 = (Math.pow(this.velocity,2) * Math.pow(this.actualTime, 3)) / (3 * Math.pow(this.initMass,2));
+		this.phi = term1 * (term2 - term3 + term4 + term5);
+		this.finalPhi = this.phi;	
+		
+
+	
 		
 		polarCoordinates = new PolarPoint2D(this.actualDistance,this.phi);
 		trajectory.add(polarCoordinates.toCartesianPoint());
@@ -221,7 +249,7 @@ public class AngularMomentumModel extends Model {
 	 * Obtains the actual coordinates of the planet
 	 * @return A Point2D that indicates the actual position of the planet
 	 */
-	private Point2D planetCoordinates(){
+	public Point2D getPlanet(){
 		return this.trajectory.get(this.trajectory.size()-1);
 	}
 	
@@ -232,7 +260,7 @@ public class AngularMomentumModel extends Model {
 	public Point2D [] getPlanetAsArray(){
 		Point2D planet [] = new Point2D[1];
 		planet[0] = new Point2D.Double();
-		planet[0] = this.planetCoordinates();
+		planet[0] = this.getPlanet();
 		return planet;
 	}
 	
@@ -267,6 +295,26 @@ public class AngularMomentumModel extends Model {
 	public double getFinalDistance() {
 		return finalDistance;
 	}
+
+	public double getActualPeriod() {
+		return ActualPeriod;
+	}
+
+	public void setActualPeriod(double actualPeriod) {
+		ActualPeriod = actualPeriod;
+	}
+
+	public double getActualDistance() {
+		return actualDistance;
+	}
+
+	public double getVelocityModifier() {
+		return velocityModifier;
+	}
+	
+	
+	
+	
 	
 	
 
