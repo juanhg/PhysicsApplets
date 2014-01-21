@@ -26,19 +26,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package com.juanhg.angularmomentum;
+package com.juanhg.angularmplanet;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JApplet;
@@ -58,7 +62,8 @@ import javax.swing.event.ChangeListener;
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
 
-public class AngularMomentumApplet extends JApplet implements Runnable {
+
+public class AngularMPlanetApplet extends JApplet implements Runnable {
 	
 	private static final long serialVersionUID = -3261548917574875054L;
 
@@ -90,7 +95,7 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
     boolean fin = true;
     
     //Model
-    AngularMomentumModel model;
+    AngularMPlanetModel model;
     
     /**
      * Contiene la grÃ¡fica que representa a la onda en la cuerda.
@@ -113,7 +118,7 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 	private JLabel lblSimulaciones;
     
    
-	public AngularMomentumApplet() {}
+	public AngularMPlanetApplet() {}
 
 	public void init(){
 		try {
@@ -130,7 +135,7 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 	
 	
 	public void initComponents(){
-		setSize(1050,565);
+		setSize(1030,565);
 
 		
         
@@ -319,11 +324,11 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 			gl_panel_control.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panel_control.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
-						.addComponent(panelTiempo, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
-						.addComponent(panelButtons, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
-						.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 404, Short.MAX_VALUE)
-						.addComponent(panelInputs, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE))
+					.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
+						.addComponent(panelButtons, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
+						.addComponent(panelTiempo, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
+						.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 404, Short.MAX_VALUE)
+						.addComponent(panelInputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		gl_panel_control.setVerticalGroup(
@@ -336,8 +341,8 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 					.addGap(18)
 					.addComponent(panelTiempo, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(panelButtons, GroupLayout.DEFAULT_SIZE, 93, Short.MAX_VALUE)
-					.addContainerGap())
+					.addComponent(panelButtons, GroupLayout.PREFERRED_SIZE, 84, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(20, Short.MAX_VALUE))
 		);
 		panelButtons.setLayout(null);
 		
@@ -520,14 +525,15 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, 432, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(panel_visualizar, GroupLayout.PREFERRED_SIZE, 569, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(33, Short.MAX_VALUE))
+					.addContainerGap(13, Short.MAX_VALUE))
 		);
 		groupLayout.setVerticalGroup(
-			groupLayout.createParallelGroup(Alignment.TRAILING)
-				.addGroup(groupLayout.createSequentialGroup()
+			groupLayout.createParallelGroup(Alignment.LEADING)
+				.addGroup(Alignment.TRAILING, groupLayout.createSequentialGroup()
+					.addContainerGap()
 					.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING)
-						.addComponent(panel_visualizar, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 554, Short.MAX_VALUE)
-						.addComponent(panel_control, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+						.addComponent(panel_control, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 543, Short.MAX_VALUE)
+						.addComponent(panel_visualizar, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 543, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		GridBagLayout gbl_panel_visualizar = new GridBagLayout();
@@ -556,7 +562,7 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 				int simulations = this.sliderSimulations.getValue();
 
 				//Crear modelo
-				model = new AngularMomentumModel(initMass, finalMass, velocity, distance, simulations);
+				model = new AngularMPlanetModel(initMass, finalMass, velocity, distance, simulations);
 				
 				grafica = new Grafica(model.getPlanetAsArray(),"Conservación del Momento Angular", "Planeta", "Coordenada X", "Coordenada Y", false, Color.BLUE,1f,false);
 				grafica.agregarGrafica(model.getTrajectoryAsArray(), "Trayectoria", Color.RED, 1f,false);
@@ -571,17 +577,16 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		        
 		        zoom = this.getZoom(model.getPlanet(), supXLimit, infXLimit, supYLimit, infYLimit);
 		        grafica.setRangeAxis(infXLimit*zoom, supXLimit*zoom, infYLimit*zoom, supYLimit*zoom);
-		     
-			    
+		        Image img = null;
+		        
+		        img = this.loadImage("pleyades2.jpg");
 		        try {
-					grafica.setBackGroundImage("../img/pleyades2.jpg",0.9f);
-				} catch (IOException e) {
+					grafica.setBackGroundImage(img, 0.9f);
+				} catch (IOException e1) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					e1.printStackTrace();
 				}
-		
-		
-		
+		        		
 		panelSimulacion.actualizaGrafica(grafica);
 		
 	}
@@ -603,7 +608,7 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 		int simulations = this.sliderSimulations.getValue();
 		
        //Crear modelo
-       model = new AngularMomentumModel(initMass, finalMass, velocity, distance, simulations);
+       model = new AngularMPlanetModel(initMass, finalMass, velocity, distance, simulations);
        
        zoom = this.getZoom(model.getPlanet(), supXLimit, infXLimit, supYLimit, infYLimit);
        grafica.setRangeAxis(infXLimit*zoom, supXLimit*zoom, infYLimit*zoom, supYLimit*zoom);
@@ -807,8 +812,22 @@ public class AngularMomentumApplet extends JApplet implements Runnable {
 			try {
 				Thread.sleep((long)sleepTime);
 			} catch (InterruptedException ex) {
-				Logger.getLogger(AngularMomentumApplet.class.getName()).log(Level.SEVERE, null, ex);
+				Logger.getLogger(AngularMPlanetApplet.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
 	}
+	
+	 public BufferedImage loadImage(String fileName){
+
+		    BufferedImage buff = null;
+		    try {
+		        buff = ImageIO.read(getClass().getResourceAsStream(fileName));
+		    } catch (IOException e) {
+		        // TODO Auto-generated catch block
+		        e.printStackTrace();
+		        return null;
+		    }
+		    return buff;
+
+		}
 }

@@ -25,7 +25,7 @@
 */
 
 
-package com.juanhg.angularmomentum;
+package com.juanhg.angularmdisk;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -39,7 +39,7 @@ import com.juanhg.util.PolarPoint2D;
  *   @author Juan Hernandez Garcia 
  *   @brief Model that represents the loss of angular momentum 
  */
-public class AngularMomentumModel extends Model {
+public class AngularMDiskModel extends Model {
 	
 	//Initial Mass of the star
 	double initMass;
@@ -89,7 +89,7 @@ public class AngularMomentumModel extends Model {
 	//Point 2D that represents the star
 	Point2D star;
 	
-	public AngularMomentumModel(){
+	public AngularMDiskModel(){
 		star = new Point2D.Double(0,0);
 		
 		//Inputs values
@@ -105,7 +105,7 @@ public class AngularMomentumModel extends Model {
 		trajectory.add(new Point2D.Double(initDistance, 0));
 	}
 	
-	public AngularMomentumModel(double initMass, double finalMass, double velocity, double distance, int simulations){
+	public AngularMDiskModel(double initMass, double finalMass, double velocity, double distance, int simulations){
 		
 		final double VoModifier = 5.9*Math.pow(10.0, 24);
 		double temp1, temp2, temp3, temp4;
