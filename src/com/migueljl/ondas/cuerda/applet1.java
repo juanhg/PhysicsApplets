@@ -535,7 +535,7 @@ public class applet1 extends javax.swing.JApplet implements Runnable {
             grafica.agregarGrafica(getCuenta(instantanea_funcion),"Cuenta", Color.BLUE, 4f,true);
             grafica.visualizaMuestras(0,true,0);
             grafica.fijaRango(-2,2,0,1);
-            panel_grafica.actualizaGrafica(grafica);
+           
             avanzaSimulacion();
             try {
                 Thread.sleep(tespera);

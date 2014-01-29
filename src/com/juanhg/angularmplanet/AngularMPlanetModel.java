@@ -107,7 +107,7 @@ public class AngularMPlanetModel extends Model {
 	
 	public AngularMPlanetModel(double initMass, double finalMass, double velocity, double distance, int simulations){
 		
-		final double VoModifier = 5.9*Math.pow(10.0, 24);
+		final double VoModifier = 3.9*Math.pow(10.0, 13);
 		double temp1, temp2, temp3, temp4;
 		
 		if(initMass < 0.1 || initMass > 80){
@@ -134,21 +134,27 @@ public class AngularMPlanetModel extends Model {
 		this.initMass = this.actualMass = initMass;
 		this.finalMass = finalMass;
 		
-		double auxFinalTime = (1 - this.finalMass)/(velocity);
-		velocityModifier = 10.0;
+		double auxFinalTime = ((1 - this.finalMass)/(velocity))*this.initMass;
+		velocityModifier = 4.0;
 		
 		
-		if(auxFinalTime > 1){
-			velocityModifier = 10.0;
+		if(auxFinalTime > 40){
+			velocityModifier = 6.0;
 		}
-		else if(auxFinalTime < 1.5 && auxFinalTime > 0.5){
-			velocityModifier = 9.0;
+		else if(auxFinalTime <= 40 && auxFinalTime > 15){
+			velocityModifier = 5.0;
 		}
-		else if(auxFinalTime < 0.5 && auxFinalTime > 0.01){
-			velocityModifier = 8.0;
+		else if(auxFinalTime <= 15 && auxFinalTime > 5){
+			velocityModifier = 5.0;
+		}
+		else if(auxFinalTime <= 5 && auxFinalTime > 1){
+			velocityModifier = 4.0;
+		}
+		else if(auxFinalTime <= 1 && auxFinalTime > 0.001){
+			velocityModifier = 3.0;
 		}
 		else{
-			velocityModifier = 7.0;
+			velocityModifier = 2.0;
 		}
 		
 		this.velocity = velocity*Math.pow(10.0, velocityModifier);
@@ -158,7 +164,7 @@ public class AngularMPlanetModel extends Model {
 		/** Calculated Values **/
 		this.initTime = this.actualTime =  0;
 		this.phi = 0;
-		this.finalTime = (1 - this.finalMass)/this.velocity;
+		this.finalTime = ((1 - this.finalMass)/this.velocity)*this.initMass;
 		this.dt = finalTime/this.totalSimulations;
 		this.dMass = ((this.initMass -(this.initMass*this.finalMass)))/this.totalSimulations;
 		this.Vo = Math.sqrt(VoModifier*(this.initMass/this.initDistance));
@@ -171,10 +177,10 @@ public class AngularMPlanetModel extends Model {
 		this.finalDistance = temp1/(temp2 - (temp3*temp4));
 		
 		
-		temp1 = (2.0*Math.PI);
-		temp2 = Math.pow((1-((this.velocity*this.actualTime)/this.initMass)),2.0);
-		temp3 = this.Vo/(this.initDistance* 1.5*Math.pow(10, 11));
-		temp4 = 1.157*Math.pow(10.0, -5.0);
+		temp1 = (2.0*Math.PI)*this.initDistance;
+		temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.actualTime)/this.initMass)),2.0);
+		temp3 = this.Vo;
+		temp4 = 3.65*Math.pow(10.0, 8);
 		this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
 				
 		// Initial point of trajectory (where the planet begins) 
@@ -206,17 +212,18 @@ public class AngularMPlanetModel extends Model {
 			temp3 = this.velocity/(this.initMass);
 			temp4 = this.actualTime;
 			this.actualDistance = temp1/(temp2 - (temp3*temp4));
+		
 			
-			temp1 = (2.0*Math.PI);
-			temp2 = Math.pow((1-((this.velocity*this.actualTime)/this.initMass)),2.0);
-			temp3 = this.Vo/(this.initDistance* 1.5*Math.pow(10, 11));
-			temp4 = 1.157*Math.pow(10.0, -5.0);
+			temp1 = (2.0*Math.PI)*this.initDistance;
+			temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.actualTime*10000)/this.initMass)),2.0);
+			temp3 = this.Vo;
+			temp4 = 3.65*Math.pow(10.0, 8);
 			this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
 			
 				
 			//System.out.print("Phi: " + this.phi);
 		}
-		
+			
 		//phi
 		term1 = this.Vo/this.initDistance;
 		term2 = this.actualTime;
@@ -277,6 +284,7 @@ public class AngularMPlanetModel extends Model {
 	
 	
 	public boolean finalTimeReached(){
+	
 		return (this.actualTime >= this.finalTime);
 	}
 

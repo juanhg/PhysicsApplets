@@ -41,247 +41,104 @@ import com.juanhg.util.PolarPoint2D;
  */
 public class AngularMDiskModel extends Model {
 	
-	//Initial Mass of the star
-	double initMass;
+	static final int INIT_PHASE = 0;
+	static final int BUG_FALLS_PHASE = 1;
+	static final int FINAL_PHASE = 2;
 	
-	//Actual Mass of the star
-	double actualMass;
+	final double diskMass = 200; //M
+	final double diskRadius = 0.2; //R
 	
-	//Final Mass
-	double finalMass;
+	PolarPoint2D bugCoordinates;
+
+	double bugMass; //m
+	double bugVelocity; //v
+	double bugInitRadius; //ro
+	double bugFinalRadius; //rf
 	
-	//Velocity that weight is lost
-	double velocity;
+	double diskInitVelocity; //Wo
+	double diskPhi;
 	
-	//Initial distance of the planet to the star
-	double initDistance;
+	int phase;
 	
-	double previousDistance;
+	double Wf, Wff, tf0, tf1;
+	double finalDiskPhi;
 	
-	//Actual distance of the planet to the star
-	double actualDistance;
-	
-	//Final distance of the planet to the star
-	double finalDistance;
-	
-	//Angle
-	double phi;
-	
-	//Final Angle
-	double finalPhi; 
-	
-	//Increment of Time
-	double dt;
-	
-	//Decreemnt of Mass for each simulation
-	double dMass;
-	
-	//Initial velocity of the planet
-	double Vo;
-	
-	double ActualPeriod;
-	
-	double velocityModifier;
-	
-	//Trajectory followed by the planet along the simulation
-	List<Point2D> trajectory;
-	
-	//Point 2D that represents the star
-	Point2D star;
 	
 	public AngularMDiskModel(){
-		star = new Point2D.Double(0,0);
-		
-		//Inputs values
-		this.initMass = this.actualMass = 0;
-		this.finalMass = 0;
-		this.velocity = 0;
-		this.initDistance = this.actualDistance  = previousDistance= 0;
-		this.totalSimulations = 1000;
-	
-		
-		// Initial point of trajectory (where the planet begins) 
-		trajectory = new ArrayList<Point2D>();
-		trajectory.add(new Point2D.Double(initDistance, 0));
+		bugCoordinates = new PolarPoint2D();
 	}
 	
-	public AngularMDiskModel(double initMass, double finalMass, double velocity, double distance, int simulations){
+	public AngularMDiskModel(double bugMass, double bugInitRadius, double bugVelocity, double diskInitVelocity){ 
+	
 		
-		final double VoModifier = 5.9*Math.pow(10.0, 24);
-		double temp1, temp2, temp3, temp4;
+		this.bugMass = bugMass;
+		this.bugInitRadius = bugInitRadius;
+		this.bugVelocity = bugVelocity;
+		this.diskInitVelocity = 2.0*Math.PI*diskInitVelocity;
+		this.diskPhi = 0;
 		
-		if(initMass < 0.1 || initMass > 80){
-			System.err.println("Initial Mass must be in the range [0.1,30]");
-			System.exit(1);
-		}
+		this.bugCoordinates = new PolarPoint2D(bugInitRadius, 0);
 		
-		if(velocity < 0.001 || velocity > 15){
-			System.err.println("Velocity must be in the range [0.001, 1]");
-			System.exit(2);
-		}
+		this.actualTime = this.initTime = 0;
 		
-		if(finalMass < 0.6 || finalMass > 0.95){
-			System.err.println("The % of final Mass must be in the range [0.05, 0.6]");
-			System.exit(3);
-		}
+		this.bugFinalRadius = 0;
 		
-		if(distance < 0.3 || distance > 50){
-			System.err.println("The initial radio must be in the range [0.3, 50]");
-			System.exit(3);
-		}
+		this.calculateWf();
+		this.calculateWff();
+			
+		//tf
+		tf1 = (Math.abs(this.bugInitRadius-this.bugFinalRadius))/this.bugVelocity;
 		
-		//Inputs values
-		this.initMass = this.actualMass = initMass;
-		this.finalMass = finalMass;
-		
-		double auxFinalTime = (1 - this.finalMass)/(velocity);
-		velocityModifier = 10.0;
-		
-		
-		if(auxFinalTime > 1){
-			velocityModifier = 10.0;
-		}
-		else if(auxFinalTime < 1.5 && auxFinalTime > 0.5){
-			velocityModifier = 9.0;
-		}
-		else if(auxFinalTime < 0.5 && auxFinalTime > 0.01){
-			velocityModifier = 8.0;
-		}
-		else{
-			velocityModifier = 7.0;
-		}
-		
-		this.velocity = velocity*Math.pow(10.0, velocityModifier);
-		this.initDistance = this.actualDistance = distance;
-		this.totalSimulations = simulations;
-		
-		/** Calculated Values **/
-		this.initTime = this.actualTime =  0;
-		this.phi = 0;
-		this.finalTime = (1 - this.finalMass)/this.velocity;
-		this.dt = finalTime/this.totalSimulations;
-		this.dMass = ((this.initMass -(this.initMass*this.finalMass)))/this.totalSimulations;
-		this.Vo = Math.sqrt(VoModifier*(this.initMass/this.initDistance));
-		
-		/* rf */
-		temp1 = this.initDistance;
-		temp2 = 1;
-		temp3 = this.velocity/(this.initMass);
-		temp4 = this.finalTime;
-		this.finalDistance = temp1/(temp2 - (temp3*temp4));
-		
-		
-		temp1 = (2.0*Math.PI);
-		temp2 = Math.pow((1-((this.velocity*this.actualTime)/this.initMass)),2.0);
-		temp3 = this.Vo/(this.initDistance* 1.5*Math.pow(10, 11));
-		temp4 = 1.157*Math.pow(10.0, -5.0);
-		this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
-				
-		// Initial point of trajectory (where the planet begins) 
-		trajectory = new ArrayList<Point2D>();
-		trajectory.add(new Point2D.Double(initDistance, 0));
-		
-		star = new Point2D.Double(0,0);
 	}
 	
 	@Override
 	public void simulate() {
-		double term1, term2, term3, term4, term5;
+		
 		double temp1, temp2, temp3, temp4;
-		PolarPoint2D polarCoordinates;
-		actualSimulation++;
 		
-		//Increments the actual time
-		actualTime += dt;
-		
-		//Calculates the new radius and distance
-		if(!finalTimeReached()){
-			//Actualizes Mass
-			this.actualMass -= this.dMass;
+		switch(phase){
+		case INIT_PHASE:
+			this.diskPhi = (this.diskInitVelocity*this.actualTime) % (Math.PI*2);
+			this.tf0 = this.actualTime;
+			this.finalDiskPhi = this.diskPhi;
+			break;
+		case BUG_FALLS_PHASE:
 			
+			temp1 = (Wf-Wff)/tf1;
+			temp2 = Math.pow(this.actualTime, 2.0)/2.0;
+			temp3 = Wf*this.actualTime;
+			temp4 = this.diskInitVelocity*tf0;
+			this.diskPhi = ((temp1*temp2) + temp3 + temp4) % (Math.PI*2);
 			
-			/* r */
-			temp1 = this.initDistance;
-			temp2 = 1;
-			temp3 = this.velocity/(this.initMass);
-			temp4 = this.actualTime;
-			this.actualDistance = temp1/(temp2 - (temp3*temp4));
-			
-			temp1 = (2.0*Math.PI);
-			temp2 = Math.pow((1-((this.velocity*this.actualTime)/this.initMass)),2.0);
-			temp3 = this.Vo/(this.initDistance* 1.5*Math.pow(10, 11));
-			temp4 = 1.157*Math.pow(10.0, -5.0);
-			this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
-			
-				
-			//System.out.print("Phi: " + this.phi);
+			this.bugCoordinates.setPhi(finalDiskPhi-this.diskPhi);
+			double auxRadius = this.bugInitRadius - this.bugVelocity*this.actualTime;
+			if(auxRadius > 0 && auxRadius <= this.diskRadius){
+				this.bugCoordinates.setRadius(auxRadius);
+			}
+			else{
+				this.phase = FINAL_PHASE;
+			}
+			break;
+		case FINAL_PHASE:
+			break;
 		}
-		
-		//phi
-		term1 = this.Vo/this.initDistance;
-		term2 = this.actualTime;
-		term3 = (this.velocity * Math.pow(this.actualTime, 2)) / this.initMass;
-		term4 = (Math.pow(this.velocity,2) * Math.pow(this.actualTime, 3)) / this.initMass;
-		term5 = (Math.pow(this.velocity,2) * Math.pow(this.actualTime, 3)) / (3 * Math.pow(this.initMass,2));
-		this.phi = term1 * (term2 - term3 + term4 + term5);
-		this.finalPhi = this.phi;	
-		
-
-	
-		
-		polarCoordinates = new PolarPoint2D(this.actualDistance,this.phi);
-		trajectory.add(polarCoordinates.toCartesianPoint());
-	}
-
-	public List<Point2D> getTrajectory() {
-		return trajectory;
 	}
 	
 	/**
-	 * Gets the trajectory as an array of Point2Ds object
-	 * @return An array that is the trajectory
-	 */
-	public Point2D [] getTrajectoryAsArray(){
-		return trajectory.toArray(new Point2D[trajectory.size()]);
-	}
-	
-	/**
-	 * Obtains the actual coordinates of the planet
-	 * @return A Point2D that indicates the actual position of the planet
-	 */
-	public Point2D getPlanet(){
-		return this.trajectory.get(this.trajectory.size()-1);
-	}
-	
-	/**
-	 * Gets the planet as an array of Point2Ds object
+	 * Gets the bug coordinates as an array of Point2Ds object
 	 * @return An array of one point that is the planet
 	 */
-	public Point2D [] getPlanetAsArray(){
-		Point2D planet [] = new Point2D[1];
-		planet[0] = new Point2D.Double();
-		planet[0] = this.getPlanet();
-		return planet;
+	public Point2D [] getBugsCoordinatesAsArray(){
+		Point2D bug [] = new Point2D[1];
+		bug[0] = new Point2D.Double();
+		bug[0] = this.bugCoordinates.toCartesianPoint();
+		return bug;
 	}
 	
-	/**
-	 * Gets the star as an array of Point2Ds object
-	 * @return An array of one point that is the star
-	 */
-	public Point2D [] getStarAsArray(){
-		Point2D star [] = new Point2D[1];
-		star[0] = new Point2D.Double();
-		star[0] = this.star;
-		return star;
-	}
-	
-	
+
+		
 	public boolean finalTimeReached(){
 		return (this.actualTime >= this.finalTime);
-	}
-
-	public double getFinalMass() {
-		return finalMass;
 	}
 
 	public double getFinalTime() {
@@ -292,25 +149,62 @@ public class AngularMDiskModel extends Model {
 		return actualTime;
 	}
 
-	public double getFinalDistance() {
-		return finalDistance;
+	public double getDiskPhi() {
+		return diskPhi;
 	}
 
-	public double getActualPeriod() {
-		return ActualPeriod;
+	public int getPhase() {
+		return phase;
 	}
 
-	public void setActualPeriod(double actualPeriod) {
-		ActualPeriod = actualPeriod;
+	public void setPhase(int phase) {
+		this.phase = phase;
 	}
 
-	public double getActualDistance() {
-		return actualDistance;
+	public PolarPoint2D getBugCoordinates() {
+		return bugCoordinates;
 	}
 
-	public double getVelocityModifier() {
-		return velocityModifier;
+	public double getBugInitRadius() {
+		return bugInitRadius;
 	}
+
+	public void setBugInitRadius(double bugInitRadius) {
+		this.bugInitRadius = bugInitRadius;
+	}
+
+	public void setBugCoordinates(PolarPoint2D bugCoordinates) {
+		this.bugCoordinates = bugCoordinates;
+	}
+
+	public void calculateWf(){
+		
+		double temp1, temp2, temp3, temp4;
+		//Wf
+		temp1 = this.diskInitVelocity;
+		temp2 = 1;
+		temp3 = (2*this.bugMass/this.diskMass);
+		temp4 = Math.pow(this.bugInitRadius/this.diskRadius, 2.0);
+		Wf = temp1/(temp2 + (temp3*temp4));
+		
+
+	}
+	
+	public void calculateWff(){
+		
+		double temp1, temp2, temp3, temp4;
+		//Wff
+		temp1 = this.bugMass*(Math.pow(this.bugInitRadius,2));
+		temp2 = 0.5*this.diskMass*(Math.pow(this.diskRadius, 2));
+		temp3 = this.bugMass*(Math.pow(this.bugFinalRadius,2));
+		Wff = (temp1 + temp2)/(temp2+temp3);
+	}
+	
+	
+	
+	
+
+	
 	
 	
 	

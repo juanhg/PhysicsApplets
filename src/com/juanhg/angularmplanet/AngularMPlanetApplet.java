@@ -164,7 +164,7 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 		
 		sliderSimulations = new JSlider();
 		sliderSimulations.setMinimum(1);
-		sliderSimulations.setMaximum(2000);
+		sliderSimulations.setMaximum(4000);
 		sliderSimulations.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
 				sliderSimulationsEvent();
@@ -266,21 +266,19 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 					.addContainerGap()
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(labelTiempoFinal, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
-									.addPreferredGap(ComponentPlacement.RELATED))
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(labelTime)
-									.addGap(27)))
 							.addGroup(gl_panelOutputs.createSequentialGroup()
-								.addComponent(labelOutput3, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
-								.addGap(70)))
+								.addComponent(labelTiempoFinal, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+								.addPreferredGap(ComponentPlacement.RELATED))
+							.addGroup(gl_panelOutputs.createSequentialGroup()
+								.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING, false)
+									.addComponent(labelOutput2, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+									.addComponent(labelTime, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+								.addGap(27)))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(labelOutput2, GroupLayout.PREFERRED_SIZE, 68, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED)))
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(Alignment.TRAILING, gl_panelOutputs.createSequentialGroup()
+							.addComponent(labelOutput3, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
+							.addGap(70)))
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
 								.addComponent(textFinalRadius, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
 								.addComponent(textFinalTime, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -290,9 +288,9 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 							.addGap(4))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addComponent(lblPeriodValue, GroupLayout.PREFERRED_SIZE, 93, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addPreferredGap(ComponentPlacement.RELATED)
 							.addComponent(lblIteracinActual)
-							.addContainerGap())))
+							.addGap(43))))
 		);
 		gl_panelOutputs.setVerticalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
@@ -733,7 +731,7 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 		double dSimulation = 70.0/model.getTotalSimulations();
 		int exp = 0;
 		
-		while(!end){
+		while(!end  && (model.getActualSimulation() <= (sliderSimulations.getValue()+sliderSimulations.getValue()*0.4))){
 			
   		if(!model.finalTimeReached()){
 			colorGreen = (255 - ((int) (model.getActualTime()/dColor)));
@@ -741,8 +739,6 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 			else{
 				colorGreen = 0;
 			}
-			
-			//System.out.println(colorGreen);
 			
 	
 			if(!model.finalTimeReached()){
@@ -780,8 +776,17 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 			else{
 				textFinalTime.setText(auxTime + " E" + exp);
 			}
+		
+			auxTime = String.valueOf((model.getFinalDistance()));
+		    exp = obtainExponent((model.getFinalDistance()));
+			if(auxTime.length() > 5){
+				textFinalRadius.setText(auxTime.substring(0,5)+ " E" + exp);
+			}
+			else{
+				textFinalRadius.setText(auxTime+ " E" + exp);
+			}
 			
-			textFinalRadius.setText(String.valueOf(model.getFinalDistance()));
+			
 			auxTime = String.valueOf((model.getActualTime()*Math.pow(10.0, model.getVelocityModifier())));
 		    exp = obtainExponent((model.getActualTime()*Math.pow(10.0, model.getVelocityModifier())));
 			if(auxTime.length() > 5){
@@ -795,7 +800,7 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 			auxTime = String.valueOf((model.getActualPeriod()));
 			exp = this.obtainExponent(model.getActualPeriod());
 			if(auxTime.length() > 5){
-				lblPeriodValue.setText(auxTime.substring(0,5)+ " E" + exp);
+				lblPeriodValue.setText(auxTime.substring(0,7)+ " E" + exp);
 			}
 			else{
 				lblPeriodValue.setText(auxTime+ " E" + exp);

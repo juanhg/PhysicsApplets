@@ -68,6 +68,12 @@ public abstract class Model {
 	public int getTotalSimulations() {
 		return totalSimulations;
 	}
-	
-	
+
+	public double getActualTime() {
+		return actualTime;
+	}
+
+	public void setActualTime(double actualTime) {
+		this.actualTime = actualTime;
+	}
 }
