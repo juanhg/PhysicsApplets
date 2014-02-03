@@ -176,6 +176,16 @@ public class AngularMDiskModel extends Model {
 	public void setBugCoordinates(PolarPoint2D bugCoordinates) {
 		this.bugCoordinates = bugCoordinates;
 	}
+	
+	
+
+	public double getBugVelocity() {
+		return bugVelocity;
+	}
+
+	public void setBugVelocity(double bugVelocity) {
+		this.bugVelocity = bugVelocity;
+	}
 
 	public void calculateWf(){
 		

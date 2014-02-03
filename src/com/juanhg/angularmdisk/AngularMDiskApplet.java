@@ -66,73 +66,60 @@ import com.juanhg.util.PolarPoint2D;
 import com.juanhg.util.Time;
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
+import javax.swing.JTabbedPane;
+import java.awt.Insets;
+import java.awt.GridLayout;
+import javax.swing.SwingConstants;
 
 
 public class AngularMDiskApplet extends JApplet implements Runnable {
 	
 	private static final long serialVersionUID = -3261548917574875054L;
 
+	//Time variables
 	Time time = new Time();
-	XYAnnotation diskAnnotation, bugAnnotation, targetAnnotation;
+	double sleepTime = 40;
 	
-	BufferedImage OriginalBugImage = null;
-	BufferedImage OriginalDiskImage = null;
-	BufferedImage rotatedBugImage = null;
-	BufferedImage rotatedDiskImage = null;
-	BufferedImage targetImage = null;
-	BufferedImage backgroundImage = null;
+	boolean end = false;
 	
-
+	double bugInitMass, fallRadius, diskVelocity, bugVelocity;
+	
+	//Thread that executed the simlation
+    private Thread flujo = null;
+      
+    //Model
+    private AngularMDiskModel model;
+    
+    //Charts
+    private Grafica chart; 
+    
+    //ChartPanels
+	private JPanelGrafica panelSimulation;
 	
 	int supXLimit = 23;
 	int infXLimit = -23;
 	int supYLimit = 23;
 	int infYLimit = -23;
 	
-	double sleepTime = 20;
-	int zoom = 1;
-	boolean end = false;
+	//Annotations
+	XYAnnotation diskAnnotation = null;
+	XYAnnotation bugAnnotation = null; 
+	XYAnnotation targetAnnotation = null;
 	
-	double starInitSize = 50;
-	
-	JPanelGrafica panelSimulacion;
-	
-	/**
-     * Hebra que ejecuta la simulación.
-     */
-    Thread flujo = null;
-    /**
-     * Variable que identifica la instantánea de las funciones simuladas que se mostrará en la aplicación.
-     */
-    int i = 0;
-    int tActual = 0;
+	BufferedImage bugImage, diskImage,  roseImage, targetImage;
+	BufferedImage rotatedBugImage, rotatedDiskImage; 
+	BufferedImage backgroundImage; 
+
+	//Labels
+    private JLabel lblPeriodValue, textFinalTime, textFinalRadius, labelActualTime;  
+    private JLabel lblFinalMassValue, lblDistanceValue, lblVelocityValue, lblInitMassValue;
+    private JLabel lblActualSimulationValue;
     
-    ArrayList<Point2D[]> funcion;
-    boolean fin = true;
-    
-    //Model
-    AngularMDiskModel model;
-    
-    /**
-     * Contiene la gráfica que representa a la onda en la cuerda.
-     */
-    private Grafica chart;
-    
-    private JLabel lblPeriodValue;
-    private JLabel textFinalTime;
-    private JLabel textFinalRadius;
-    private JLabel labelActualTime; 
-    JLabel lblIteracinActual;
-    JLabel lblFinalMassValue, lblDistanceValue, lblVelocityValue, lblInitMassValue;
-    JLabel lblActualSimulationValue;
-    
-    private JSlider sliderBugInitMass; 
-    private JSlider sliderFallRadius;
-    private JSlider sliderBugVelocity;
-    private JSlider sliderDiskVelocity;
-	private JSlider sliderPlotBackGround;
-	
-	JButton btnFase1;
+    //Sliders
+    private JSlider sliderBugInitMass, sliderFallRadius, sliderBugVelocity, sliderDiskVelocity;
+
+	//Buttons
+	JButton btnFase1, btnLaunchSimulation, btnPauseContinue;
     
    
 	public AngularMDiskApplet() {}
@@ -152,11 +139,8 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 	
 	
 	public void initComponents(){
-		setSize(1030,600);
-
 		
-        
-		
+		setSize(1040,610);
 		
 		JPanel panel_control = new JPanel();
 		panel_control.setBorder(new CompoundBorder(new EtchedBorder(EtchedBorder.RAISED, null, null), new BevelBorder(BevelBorder.RAISED, null, null, null, null)));
@@ -169,55 +153,12 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		panelTiempo.setToolTipText("");
 		panelTiempo.setBorder(new MatteBorder(1, 1, 1, 1, (Color) new Color(0, 0, 0)));
 		
-		sliderPlotBackGround = new JSlider();
-		sliderPlotBackGround.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent event) {
-				sliderPlotBackgroundEvent(event);
-			}
-		});
-		sliderPlotBackGround.setValue(10);
-		sliderPlotBackGround.setMinorTickSpacing(1);
-		sliderPlotBackGround.setMaximum(10);
-		
-		JLabel lblVisibilidadDelFondo = new JLabel("Visibilidad del Fondo");
-		lblVisibilidadDelFondo.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		
-		btnFase1 = new JButton("");
+		btnFase1 = new JButton("Lanzar Bicho");
 		btnFase1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				btnLadyBugEvent();
 			}
 		});
-		try {
-		    Image img = ImageIO.read(getClass().getResource("ladyBug1.png"));
-		    btnFase1.setIcon(new ImageIcon(img));
-		  } catch (IOException ex) {
-		  }
-		GroupLayout gl_panelTiempo = new GroupLayout(panelTiempo);
-		gl_panelTiempo.setHorizontalGroup(
-			gl_panelTiempo.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_panelTiempo.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblVisibilidadDelFondo)
-						.addComponent(sliderPlotBackGround, GroupLayout.PREFERRED_SIZE, 171, GroupLayout.PREFERRED_SIZE))
-					.addGap(18)
-					.addComponent(btnFase1, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(136, Short.MAX_VALUE))
-		);
-		gl_panelTiempo.setVerticalGroup(
-			gl_panelTiempo.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_panelTiempo.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(gl_panelTiempo.createParallelGroup(Alignment.TRAILING)
-						.addComponent(btnFase1, GroupLayout.PREFERRED_SIZE, 47, GroupLayout.PREFERRED_SIZE)
-						.addGroup(gl_panelTiempo.createSequentialGroup()
-							.addComponent(lblVisibilidadDelFondo)
-							.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-							.addComponent(sliderPlotBackGround, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)))
-					.addGap(29))
-		);
-		panelTiempo.setLayout(gl_panelTiempo);
 		
 		JPanel panelButtons = new JPanel();
 		panelButtons.setBorder(new LineBorder(new Color(0, 0, 0)));
@@ -260,9 +201,6 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		labelActualTime = new JLabel("0");
 		labelActualTime.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblIteracinActual = new JLabel("Simulaci\u00F3n Actual");
-		lblIteracinActual.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
 		lblActualSimulationValue = new JLabel("0");
 		lblActualSimulationValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
@@ -288,8 +226,8 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addComponent(labelOutput2, GroupLayout.PREFERRED_SIZE, 68, GroupLayout.PREFERRED_SIZE)
 							.addPreferredGap(ComponentPlacement.RELATED)))
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(Alignment.TRAILING, gl_panelOutputs.createSequentialGroup()
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
 								.addComponent(textFinalRadius, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
 								.addComponent(textFinalTime, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -299,9 +237,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 							.addGap(4))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addComponent(lblPeriodValue, GroupLayout.PREFERRED_SIZE, 93, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addComponent(lblIteracinActual)
-							.addContainerGap())))
+							.addGap(143))))
 		);
 		gl_panelOutputs.setVerticalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
@@ -318,8 +254,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 						.addComponent(labelOutput3)
-						.addComponent(lblPeriodValue)
-						.addComponent(lblIteracinActual))
+						.addComponent(lblPeriodValue))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 						.addComponent(textFinalRadius, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
@@ -334,10 +269,10 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 				.addGroup(gl_panel_control.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
-						.addComponent(panelButtons, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
-						.addComponent(panelTiempo, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
 						.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 404, Short.MAX_VALUE)
-						.addComponent(panelInputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE))
+						.addComponent(panelInputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
+						.addComponent(panelButtons, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
+						.addComponent(panelTiempo, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		gl_panel_control.setVerticalGroup(
@@ -348,14 +283,30 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 156, GroupLayout.PREFERRED_SIZE)
 					.addGap(18)
-					.addComponent(panelTiempo, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(panelTiempo, GroupLayout.DEFAULT_SIZE, 118, Short.MAX_VALUE)
+					.addGap(18)
 					.addComponent(panelButtons, GroupLayout.PREFERRED_SIZE, 84, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(20, Short.MAX_VALUE))
+					.addContainerGap())
 		);
+		GroupLayout gl_panelTiempo = new GroupLayout(panelTiempo);
+		gl_panelTiempo.setHorizontalGroup(
+			gl_panelTiempo.createParallelGroup(Alignment.TRAILING)
+				.addGroup(Alignment.LEADING, gl_panelTiempo.createSequentialGroup()
+					.addGap(26)
+					.addComponent(btnFase1, GroupLayout.PREFERRED_SIZE, 188, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(188, Short.MAX_VALUE))
+		);
+		gl_panelTiempo.setVerticalGroup(
+			gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_panelTiempo.createSequentialGroup()
+					.addGap(11)
+					.addComponent(btnFase1, GroupLayout.PREFERRED_SIZE, 58, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(47, Short.MAX_VALUE))
+		);
+		panelTiempo.setLayout(gl_panelTiempo);
 		panelButtons.setLayout(null);
 		
-		JButton btnLaunchSimulation = new JButton("Lanzar Simulaci\u00F3n");
+		btnLaunchSimulation = new JButton("Lanzar Simulaci\u00F3n");
 		btnLaunchSimulation.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		btnLaunchSimulation.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
@@ -365,7 +316,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		btnLaunchSimulation.setBounds(10, 11, 191, 62);
 		panelButtons.add(btnLaunchSimulation);
 		
-		JButton btnPauseContinue = new JButton("Pausar/Continuar");
+		btnPauseContinue = new JButton("Pausar/Continuar");
 		btnPauseContinue.setFont(new Font("Tahoma", Font.PLAIN, 16));
 		btnPauseContinue.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
@@ -409,7 +360,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		sliderBugInitMass.setMinimum(20);
 		sliderBugInitMass.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
-				sliderInitMassEvent();
+				sliderBugInitMassEvent();
 			}
 		});
 		sliderBugInitMass.setMaximum(70);
@@ -417,7 +368,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		sliderFallRadius = new JSlider();
 		sliderFallRadius.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				sliderFinalMassEvent();
+				sliderFallRadiusEvent();
 			}
 		});
 		sliderFallRadius.setValue(10);
@@ -430,7 +381,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		sliderBugVelocity.setMinimum(5);
 		sliderBugVelocity.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				sliderDistanceEvent();
+				sliderBugVelocityEvent();
 			}
 		});
 		sliderBugVelocity.setMinorTickSpacing(1);
@@ -440,7 +391,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		sliderDiskVelocity.setMinimum(5);
 		sliderDiskVelocity.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				sliderVelocityEvent();
+				sliderDiskVelocityEvent();
 			}
 		});
 		sliderDiskVelocity.setValue(25);
@@ -532,78 +483,103 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					.addContainerGap()
 					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, 432, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panel_visualizar, GroupLayout.PREFERRED_SIZE, 569, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(13, Short.MAX_VALUE))
+					.addComponent(panel_visualizar, GroupLayout.DEFAULT_SIZE, 592, Short.MAX_VALUE)
+					.addContainerGap())
 		);
 		groupLayout.setVerticalGroup(
-			groupLayout.createParallelGroup(Alignment.LEADING)
-				.addGroup(Alignment.TRAILING, groupLayout.createSequentialGroup()
+			groupLayout.createParallelGroup(Alignment.TRAILING)
+				.addGroup(groupLayout.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING)
-						.addComponent(panel_control, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 543, Short.MAX_VALUE)
-						.addComponent(panel_visualizar, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 543, Short.MAX_VALUE))
+						.addComponent(panel_visualizar, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 598, Short.MAX_VALUE)
+						.addComponent(panel_control, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 598, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		GridBagLayout gbl_panel_visualizar = new GridBagLayout();
 		gbl_panel_visualizar.columnWidths = new int[]{0, 0};
-		gbl_panel_visualizar.rowHeights = new int[]{0, 0};
+		gbl_panel_visualizar.rowHeights = new int[]{0, 0, 0};
 		gbl_panel_visualizar.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-		gbl_panel_visualizar.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panel_visualizar.rowWeights = new double[]{1.0, 1.0, Double.MIN_VALUE};
 		panel_visualizar.setLayout(gbl_panel_visualizar);
 		
-		panelSimulacion = new JPanelGrafica();
-		panelSimulacion.setBackground(Color.WHITE);
-		GridBagConstraints gbc_panelSimulacion = new GridBagConstraints();
-		gbc_panelSimulacion.fill = GridBagConstraints.BOTH;
-		gbc_panelSimulacion.gridx = 0;
-		gbc_panelSimulacion.gridy = 0;
-		panel_visualizar.add(panelSimulacion, gbc_panelSimulacion);
-		getContentPane().setLayout(groupLayout);
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		GridBagConstraints gbc_tabbedPane = new GridBagConstraints();
+		gbc_tabbedPane.gridheight = 2;
+		gbc_tabbedPane.fill = GridBagConstraints.BOTH;
+		gbc_tabbedPane.gridx = 0;
+		gbc_tabbedPane.gridy = 0;
+		panel_visualizar.add(tabbedPane, gbc_tabbedPane);
 		
-		
-		//Obtain values from interface
-		double bugInitMass = this.sliderBugInitMass.getValue();
-		double fallRadius = this.sliderFallRadius.getValue()/100.0;
-		double diskVelocity = this.sliderDiskVelocity.getValue()/10.0;
-		double bugVelocity = 0;
-		
-		if(this.sliderDiskVelocity.getValue() <= 20){
-			bugVelocity = -(this.sliderBugVelocity.getValue()/1000.0);
-		}
-		else{
-			bugVelocity = (this.sliderBugVelocity.getValue()-15)/1000.0;
-		}
-		
-		//Crear modelo
-		model = new AngularMDiskModel(bugInitMass, fallRadius, bugVelocity, diskVelocity);
-
-		chart = new Grafica(model.getBugsCoordinatesAsArray(),"Conservaci�n del Momento Angular", "Bug", "Coordenada X", "Coordenada Y", false, Color.BLUE,1f,false);
-		chart.setRangeAxis(this.infXLimit, this.supXLimit, this.infYLimit, this.supYLimit);
-		
-
-		backgroundImage = this.loadImage("wood.jpg");
-		try {
-			chart.setBackGroundImage(backgroundImage, 0.9f);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-		
-		this.OriginalDiskImage = loadImage("vinilo4.png");
-		diskAnnotation = chart.setImageAtPoint(this.OriginalDiskImage, 0, 0); 
-		
-		this.OriginalBugImage = loadImage("ladyBug1.png");
-		
-		this.targetImage = loadImage("target642.png");
-		targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(),0);
+		panelSimulation = new JPanelGrafica();
+		tabbedPane.addTab("C�mara Fija", null, panelSimulation, null);
+		panelSimulation.setBackground(Color.WHITE);
 		
 //		Thread musicThread  = new AePlayWave("./com/juanhg/diskangularmomentum/win.wav");
 //		musicThread.start();
 	
-			    
-		panelSimulacion.actualizaGrafica(chart);
+		getContentPane().setLayout(groupLayout);	
 		
+		//Obtain values from interface
+		this.readInputs();
+		
+		//Crear modelo
+		model = new AngularMDiskModel(bugInitMass, fallRadius, bugVelocity, diskVelocity);
+
+		this.initCharts();	
 	}
 	
+	
+
+	void sliderBugInitMassEvent(){
+
+		if(sliderBugInitMass.getValueIsAdjusting()){
+			lblInitMassValue.setText(Double.toString((double)sliderBugInitMass.getValue()));
+			repaint();
+		}
+	}
+	void sliderDiskVelocityEvent(){
+
+		if(sliderDiskVelocity.getValueIsAdjusting()){
+			lblVelocityValue.setText(Double.toString(((double)sliderDiskVelocity.getValue()/10.0)));
+			repaint();
+		}
+	}
+	void sliderBugVelocityEvent(){
+
+		if(sliderBugVelocity.getValueIsAdjusting()){
+			if(sliderBugVelocity.getValue() <= 20){
+				lblDistanceValue.setText(Double.toString(-(double)sliderBugVelocity.getValue()/10.0));
+				model.setBugVelocity(-(this.sliderBugVelocity.getValue()/1000.0));
+			}
+			else{
+				lblDistanceValue.setText(Double.toString(((double)sliderBugVelocity.getValue()-15)/10.0));
+				model.setBugVelocity((this.sliderBugVelocity.getValue()-15)/1000.0);
+			}
+			repaint();
+		}
+	}
+	void sliderFallRadiusEvent(){
+
+		if(sliderFallRadius.getValueIsAdjusting() && model.getPhase() == AngularMDiskModel.INIT_PHASE){
+			
+			
+			lblFinalMassValue.setText(Double.toString((double)sliderFallRadius.getValue()));
+			
+			if(targetAnnotation != null){
+				chart.deleteImage(targetAnnotation);
+			}
+			targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(), 0);
+			
+			model.setBugInitRadius(((double)sliderFallRadius.getValue())/100.0);
+			model.getBugCoordinates().setRadius(((double)sliderFallRadius.getValue())/100.0);
+			model.calculateWf();
+			model.calculateWff();
+			
+			end = false;
+			
+			repaint();
+		}
+	}
 	
 	void btnLaunchSimulationEvent(ActionEvent event){
 		
@@ -623,41 +599,15 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 			}
 		}
 
-		//Obtain values from interface
-		//Obtain values from interface
-		double bugInitMass = this.sliderBugInitMass.getValue();
-		double fallRadius = this.sliderFallRadius.getValue()/100.0;
-		double diskVelocity = this.sliderDiskVelocity.getValue()/10.0;
-		double bugVelocity = 0;
+		//time = new Time();
 		
-		if(this.sliderDiskVelocity.getValue() <= 20){
-			bugVelocity = -(this.sliderBugVelocity.getValue()/1000.0);
-		}
-		else{
-			bugVelocity = (this.sliderBugVelocity.getValue()-15)/1000.0;
-		}
+		//Obtain values from interface
+		this.readInputs();
 
-
-		//Crear modelo
 		//Crear modelo
 		model = new AngularMDiskModel(bugInitMass, fallRadius, bugVelocity, diskVelocity);
 
-		chart = new Grafica(model.getBugsCoordinatesAsArray(),"Conservaci�n del Momento Angular", "Bug", "Coordenada X", "Coordenada Y", false, Color.BLUE,1f,false);
-		chart.setRangeAxis(this.infXLimit, this.supXLimit, this.infYLimit, this.supYLimit);
-
-		try {
-			chart.setBackGroundImage(backgroundImage, 0.9f);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-
-		this.OriginalDiskImage = loadImage("vinilo4.png");
-		diskAnnotation = chart.setImageAtPoint(this.OriginalDiskImage, 0, 0); 
-
-		this.OriginalBugImage = loadImage("ladyBug1.png");
-
-		this.targetImage = loadImage("target642.png");
-		targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(),0);
+		this.initCharts();
        
        //Initializes and runs the thread (Run())
        flujo = new Thread();
@@ -683,106 +633,34 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 	        }
 	}
 	
-	void btnLadyBugEvent(){
-		
-		
-		 if(flujo != null && flujo.isAlive()) {
-			 
-			 end = true;
+	void btnLadyBugEvent() {
+
+		if (flujo != null && flujo.isAlive()) {
+
+			end = true;
+			while(flujo.isAlive()) {}
 			
-			 
-			 
-			 model.setPhase(AngularMDiskModel.BUG_FALLS_PHASE);
-			 
-			 PolarPoint2D bug = new PolarPoint2D(model.getBugCoordinates().getRadius()*100, model.getBugCoordinates().getPhi());
-			 
-			 bugAnnotation = chart.setImageAtPoint(this.OriginalBugImage, bug.toCartesianPoint());	
-			 
-			 chart.deleteImage(targetAnnotation);
-	        
-	         
-	         btnFase1.setEnabled(false);
-	         
-	         end = false;
-	         
-	         time.clear();
-	         time.start();
-	         
-	         flujo = new Thread(this);
-	         flujo.start();
-		 }
-	}
-	
-	void sliderPlotBackgroundEvent(ChangeEvent event){
-		
-		if(sliderPlotBackGround.getValueIsAdjusting()){
-			float alpha = ((float)sliderPlotBackGround.getValue())/10f;
-			chart.getPlot().setBackgroundImageAlpha(alpha);
-			panelSimulacion.actualizaGrafica(chart);
-			repaint();
-		}
-	}
-	void sliderInitMassEvent(){
+			model.setPhase(AngularMDiskModel.BUG_FALLS_PHASE);
+			PolarPoint2D bug = new PolarPoint2D(model.getBugCoordinates().getRadius() * 100, model.getBugCoordinates().getPhi());
 
-		if(sliderBugInitMass.getValueIsAdjusting()){
-			lblInitMassValue.setText(Double.toString((double)sliderBugInitMass.getValue()));
-			repaint();
-		}
-	}
-	void sliderVelocityEvent(){
+			bugAnnotation = chart.setImageAtPoint(this.bugImage,bug.toCartesianPoint());
 
-		if(sliderDiskVelocity.getValueIsAdjusting()){
-			lblVelocityValue.setText(Double.toString(((double)sliderDiskVelocity.getValue()/10.0)));
-			repaint();
-		}
-	}
-	void sliderDistanceEvent(){
-
-		if(sliderBugVelocity.getValueIsAdjusting()){
-			if(sliderBugVelocity.getValue() <= 20){
-				lblDistanceValue.setText(Double.toString(-(double)sliderBugVelocity.getValue()/10.0));
-			}
-			else{
-				lblDistanceValue.setText(Double.toString(((double)sliderBugVelocity.getValue()-15)/10.0));
-			}
-			repaint();
-		}
-	}
-	void sliderFinalMassEvent(){
-
-		if(sliderFallRadius.getValueIsAdjusting() && model.getPhase() == AngularMDiskModel.INIT_PHASE){
-			lblFinalMassValue.setText(Double.toString((double)sliderFallRadius.getValue()));
 			chart.deleteImage(targetAnnotation);
-			targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(), 0);
-			model.setBugInitRadius(((double)sliderFallRadius.getValue())/100.0);
-			model.getBugCoordinates().setRadius(((double)sliderFallRadius.getValue())/100.0);
-			model.calculateWf();
-			model.calculateWff();
-			repaint();
-		}
-}
-	
-	void sliderChangeEvent(JSlider slider, JLabel label){
-		if(slider.getValueIsAdjusting()){
-			label.setText(Double.toString(((double)slider.getValue())/10.0));
-			repaint();
+
+			btnFase1.setEnabled(false);
+
+			end = false;
+
+			time.clear();
+			time.start();
+
+			flujo = new Thread(this);
+			flujo.start();
 		}
 	}
 	
 
-	
-	int obtainExponent(double number){
-		int exponent = 0;
-		
-		while(0 == (int)number){
-			exponent--;
-			number *= 10;
-		}
-		return exponent;
-		
-	}
-	
-    
+	    
 	@Override
 	public void run() {
 
@@ -791,40 +669,42 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		while(!end){
 
 
-			this.rotatedDiskImage = ImageProcessing.rotateRadians(this.OriginalDiskImage, model.getDiskPhi());
-			chart.deleteImage(diskAnnotation);
+			this.rotatedDiskImage = ImageProcessing.rotateRadians(this.diskImage, model.getDiskPhi());
+			if(diskAnnotation != null){
+				chart.deleteImage(diskAnnotation);
+			}
 			diskAnnotation = chart.setImageAtPoint(this.rotatedDiskImage, 0, 0); 
-			
-
+					
 			switch(model.getPhase()){
 				case AngularMDiskModel.INIT_PHASE:
-					chart.deleteImage(targetAnnotation);
+					if(targetAnnotation != null){
+						chart.deleteImage(targetAnnotation);
+					}
 					targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(), 0);
 					break;
 				case AngularMDiskModel.BUG_FALLS_PHASE:
 					PolarPoint2D bug = new PolarPoint2D(model.getBugCoordinates().getRadius()*100, model.getBugCoordinates().getPhi());
 					
-					this.rotatedBugImage = ImageProcessing.rotateRadians(this.OriginalBugImage, -(model.getBugCoordinates().getPhi()-(1.5*Math.PI)));
-					chart.deleteImage(bugAnnotation);
+					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, -(model.getBugCoordinates().getPhi()-(1.5*Math.PI)));
+					if(bugAnnotation != null){
+						chart.deleteImage(bugAnnotation);
+					}
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint()); 
 					break;
 				case AngularMDiskModel.FINAL_PHASE:
-
 					end = true;
 					chart.deleteImage(bugAnnotation);
 					break;
 			}
 			
 		
-			double aux = time.getTime();
-			System.out.println(aux);
-			
 			time.pause();
 			model.setActualTime(((double)time.getTime())/1000.0);
 			model.simulate();
 			time.start();
 			
-			panelSimulacion.actualizaGrafica(chart);
+			panelSimulation.actualizaGrafica(chart);
+			//panelSimulation2.actualizaGrafica(chart2);
 			
 			repaint();
 
@@ -834,6 +714,52 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 				Logger.getLogger(AngularMDiskApplet.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
+	}
+	
+	/**
+	 * Read the input values from the interface and loads its 
+	 * in the variable of the class 
+	 */
+	private void readInputs(){
+		this.bugInitMass = this.sliderBugInitMass.getValue();
+		this.fallRadius = this.sliderFallRadius.getValue()/100.0;
+		this.diskVelocity = this.sliderDiskVelocity.getValue()/10.0;
+		this.bugVelocity = 0;
+		
+		if(this.sliderBugVelocity.getValue() <= 20){
+			this.bugVelocity = -(this.sliderBugVelocity.getValue()/1000.0);
+		}
+		else{
+			this.bugVelocity = (this.sliderBugVelocity.getValue()-15)/1000.0;
+		}
+	}
+	
+	//Init the chart with the model data
+	private void initCharts(){
+		chart = new Grafica(model.getBugsCoordinatesAsArray(),"Conservaci�n del Momento Angular", "Bug", "Coordenada X", "Coordenada Y", false, Color.BLUE,1f,false);
+		chart.setRangeAxis(this.infXLimit, this.supXLimit, this.infYLimit, this.supYLimit);
+		
+		
+		backgroundImage = this.loadImage("wood.jpg");
+		try {
+			chart.setBackGroundImage(backgroundImage, 0.9f);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		//Load Images
+		
+		this.diskImage = loadImage("vinilo4.png");
+		this.bugImage = loadImage("ladyBug1.png");
+		this.targetImage = loadImage("target642.png");
+		
+		//Set Images 
+		diskAnnotation = chart.setImageAtPoint(this.diskImage, 0, 0); 
+		targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(),0);
+		
+		
+		//Actualize panels
+		panelSimulation.actualizaGrafica(chart);
 	}
 	
 	public BufferedImage loadImage(String fileName){
@@ -846,8 +772,18 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 			e.printStackTrace();
 			return null;
 		}
-
 		return buff;
-
+	}
+	
+	
+	int obtainExponent(double number){
+		int exponent = 0;
+		
+		while(0 == (int)number){
+			exponent--;
+			number *= 10;
+		}
+		return exponent;
+		
 	}
 }

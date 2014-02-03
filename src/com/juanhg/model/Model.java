@@ -76,4 +76,5 @@ public abstract class Model {
 	public void setActualTime(double actualTime) {
 		this.actualTime = actualTime;
 	}
+	
 }
