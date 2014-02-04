@@ -731,7 +731,7 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 		double dSimulation = 70.0/model.getTotalSimulations();
 		int exp = 0;
 		
-		while(!end  && (model.getActualSimulation() <= (sliderSimulations.getValue()+sliderSimulations.getValue()*0.4))){
+		while(!end  && (model.getActualSimulation() <= (sliderSimulations.getValue()+sliderSimulations.getValue()*model.getSimulationsModifier()))){
 			
   		if(!model.finalTimeReached()){
 			colorGreen = (255 - ((int) (model.getActualTime()/dColor)));
@@ -797,14 +797,27 @@ public class AngularMPlanetApplet extends JApplet implements Runnable {
 			}
 			
 			
-			auxTime = String.valueOf((model.getActualPeriod()));
-			exp = this.obtainExponent(model.getActualPeriod());
-			if(auxTime.length() > 5){
-				lblPeriodValue.setText(auxTime.substring(0,7)+ " E" + exp);
+			if(!model.finalTimeReached()){
+				auxTime = String.valueOf((model.getActualPeriod()));
+				exp = this.obtainExponent(model.getActualPeriod());
+				if(auxTime.length() > 8){
+					lblPeriodValue.setText(auxTime.substring(0,8)+ " E" + exp);
+				}
+				else{
+					lblPeriodValue.setText(auxTime+ " E" + exp);
+				}
 			}
 			else{
-				lblPeriodValue.setText(auxTime+ " E" + exp);
+				auxTime = String.valueOf((model.getFinalPeriod()));
+				exp = this.obtainExponent(model.getFinalPeriod());
+				if(auxTime.length() > 8){
+					lblPeriodValue.setText(auxTime.substring(0,8)+ " E" + exp);
+				}
+				else{
+					lblPeriodValue.setText(auxTime+ " E" + exp);
+				}
 			}
+			
 			
 			
 			//lblPeriodValue.setText(String.valueOf(model.getActualPeriod()));

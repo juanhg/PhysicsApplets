@@ -81,7 +81,19 @@ public class AngularMPlanetModel extends Model {
 	
 	double ActualPeriod;
 	
+	double finalPeriod;
+	
+	public double getSimulationsModifier() {
+		return simulationsModifier;
+	}
+
+	public void setSimulationsModifier(double simulationsModifier) {
+		this.simulationsModifier = simulationsModifier;
+	}
+
 	double velocityModifier;
+	
+	double simulationsModifier = 0.4;
 	
 	//Trajectory followed by the planet along the simulation
 	List<Point2D> trajectory;
@@ -157,6 +169,11 @@ public class AngularMPlanetModel extends Model {
 			velocityModifier = 2.0;
 		}
 		
+		if(initMass == 0.5 && finalMass == 0.6 && distance == 18 && velocity == 0.15){
+			velocityModifier = 3.7;
+			simulationsModifier = 0.8;
+		}
+		
 		this.velocity = velocity*Math.pow(10.0, velocityModifier);
 		this.initDistance = this.actualDistance = distance;
 		this.totalSimulations = simulations;
@@ -178,10 +195,16 @@ public class AngularMPlanetModel extends Model {
 		
 		
 		temp1 = (2.0*Math.PI)*this.initDistance;
-		temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.actualTime)/this.initMass)),2.0);
+		temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.actualTime*10000)/this.initMass)),2.0);
 		temp3 = this.Vo;
 		temp4 = 3.65*Math.pow(10.0, 8);
 		this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
+		
+		temp1 = (2.0*Math.PI)*this.initDistance;
+		temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.finalTime*10000)/this.initMass)),2.0);
+		temp3 = this.Vo;
+		temp4 = 3.65*Math.pow(10.0, 8);
+		this.finalPeriod = (temp1/(temp2*temp3))*temp4;
 				
 		// Initial point of trajectory (where the planet begins) 
 		trajectory = new ArrayList<Point2D>();
@@ -223,6 +246,7 @@ public class AngularMPlanetModel extends Model {
 				
 			//System.out.print("Phi: " + this.phi);
 		}
+		
 			
 		//phi
 		term1 = this.Vo/this.initDistance;
@@ -319,6 +343,15 @@ public class AngularMPlanetModel extends Model {
 	public double getVelocityModifier() {
 		return velocityModifier;
 	}
+
+	public double getFinalPeriod() {
+		return finalPeriod;
+	}
+
+	public void setFinalPeriod(double finalPeriod) {
+		this.finalPeriod = finalPeriod;
+	}
+	
 	
 	
 	
