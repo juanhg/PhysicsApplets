@@ -19,7 +19,6 @@ public class ImageProcessing {
 		return rotateRadians(image, Math.toRadians(degrees));
 	}
 	
-
 	/**
 	 * Rotate an square image (radians).
 	 * @Pre The BufferedImage must have equal width & height
@@ -35,7 +34,7 @@ public class ImageProcessing {
 		int h = image.getHeight();
 		
 		AffineTransform transform = new AffineTransform();
-		transform.rotate(radians, w/2, h/2);
+		transform.rotate(-radians, w/2, h/2);
 	    AffineTransformOp op = new AffineTransformOp(transform, AffineTransformOp.TYPE_BICUBIC);
 	    
 	    return (op.filter(image, null)).getSubimage(0, 0, w, h);

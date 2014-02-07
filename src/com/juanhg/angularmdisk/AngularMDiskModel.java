@@ -27,12 +27,8 @@
 
 package com.juanhg.angularmdisk;
 
-import java.awt.geom.Point2D;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.juanhg.model.Model;
-import com.juanhg.util.PolarPoint2D;
+import com.juanhg.util.Time;
 
 /**
  *   @file   AngularMomentumModel.java
@@ -41,185 +37,284 @@ import com.juanhg.util.PolarPoint2D;
  */
 public class AngularMDiskModel extends Model {
 	
-	static final int INIT_PHASE = 0;
-	static final int BUG_FALLS_PHASE = 1;
-	static final int FINAL_PHASE = 2;
+	//Stages or phases of the model
+	static  final int PHASE_0 = 0;
+	static final int PHASE_1 = 1;
+	static final int PHASE_2 = 2;
+	static final int PHASE_3 = 3;
+	static final int PHASE_4 = 4;
 	
-	final double diskMass = 200; //M
-	final double diskRadius = 0.2; //R
+	private int phase;
+	private Time t;
 	
-	PolarPoint2D bugCoordinates;
-
-	double bugMass; //m
-	double bugVelocity; //v
-	double bugInitRadius; //ro
-	double bugFinalRadius; //rf
+	//Constants
+	private final double M = 200;
+	private final double R = 0.2;
+	private final double g = 9.8;
+	private final double durationPhase1 = 3;
 	
-	double diskInitVelocity; //Wo
-	double diskPhi;
+	//Input parameters
+	private double W; //Disk velocity
+	private double v; //Bug velocity
+	private double r0; //Fall radius
+	private double m; //Bug mass
+	private double mu; //Friction coefficient 
 	
-	int phase;
+	//Calculated parameters
+	private double phi0, phi1, phi2, phi3, phi4, phiAux;
+	private double phi1B,phi2B,phi3B;
+	private double r; //Actual radius
+	private double x;
+	private double a;
+	private double finalR;
+	private double Wf;
 	
-	double Wf, Wff, tf0, tf1;
-	double finalDiskPhi;
 	
+	public AngularMDiskModel(double m, double r0, double v, double W, double mu){ 
 	
-	public AngularMDiskModel(){
-		bugCoordinates = new PolarPoint2D();
+		final int recursion = 3;
+		double temp1, temp2, temp3, temp4;
+		
+		this.m = m;
+		this.r0 = r0;
+		this.v = v;
+		this.W = 2*Math.PI*W;
+		this.mu = mu;
+		
+		this.phase = 0;
+		this.t = new Time();
+		
+		this.r = r0;
+		this.x = 0.5*M*Math.pow(R, 2);
+		
+		for(int i = 0; i < recursion; i++){
+			this.x = calculateX(x);
+		}
+		
+		finalR = - Math.sqrt((1/m)*(this.x - (0.5*M*Math.pow(R, 2.0))));
+		
+		temp1 = 0.5*M*Math.pow(R, 2.0);
+		temp2 = m*Math.pow(r, 2.0);
+		temp3 = W;
+		
+		Wf = (temp1/(temp1 + temp2))*W;
+		
+		a = 0.5*(M/this.m)*(Math.pow(R, 2)/this.v);
+		
+		
+		
 	}
 	
-	public AngularMDiskModel(double bugMass, double bugInitRadius, double bugVelocity, double diskInitVelocity){ 
-	
+	private double calculateX (double x){
+		double result = 0;
+		double temp0, temp1, temp2, temp3, temp4;
 		
-		this.bugMass = bugMass;
-		this.bugInitRadius = bugInitRadius;
-		this.bugVelocity = bugVelocity;
-		this.diskInitVelocity = 2.0*Math.PI*diskInitVelocity;
-		this.diskPhi = 0;
+		temp0 = 0.5*M*Math.pow(R, 2.0);
 		
-		this.bugCoordinates = new PolarPoint2D(bugInitRadius, 0);
+		temp1 = mu*g*Math.pow(x, 4.0);
+		temp2 = 4*Math.pow(v, 2) * Math.pow(temp0,2.0) * Math.pow(x, 2.0);
+		temp3 = temp0/m;
+		temp4 = m;
 		
-		this.actualTime = this.initTime = 0;
-		
-		this.bugFinalRadius = 0;
-		
-		this.calculateWf();
-		this.calculateWff();
-			
-		//tf
-		tf1 = (Math.abs(this.bugInitRadius-this.bugFinalRadius))/this.bugVelocity;
-		
+		result = (temp1 - temp2 + temp3)*temp4;
+		return result;
 	}
 	
 	@Override
 	public void simulate() {
 		
-		double temp1, temp2, temp3, temp4;
+		double temp1, temp2, temp3, temp4, temp5;
+		double t = ((double)this.t.getTime())/1000.0;
 		
 		switch(phase){
-		case INIT_PHASE:
-			this.diskPhi = (this.diskInitVelocity*this.actualTime) % (Math.PI*2);
-			this.tf0 = this.actualTime;
-			this.finalDiskPhi = this.diskPhi;
+		case PHASE_0:
+			this.phi0 = (W*t);
 			break;
-		case BUG_FALLS_PHASE:
-			
-			temp1 = (Wf-Wff)/tf1;
-			temp2 = Math.pow(this.actualTime, 2.0)/2.0;
-			temp3 = Wf*this.actualTime;
-			temp4 = this.diskInitVelocity*tf0;
-			this.diskPhi = ((temp1*temp2) + temp3 + temp4) % (Math.PI*2);
-			
-			this.bugCoordinates.setPhi(finalDiskPhi-this.diskPhi);
-			double auxRadius = this.bugInitRadius - this.bugVelocity*this.actualTime;
-			if(auxRadius > 0 && auxRadius <= this.diskRadius){
-				this.bugCoordinates.setRadius(auxRadius);
+		case PHASE_1:
+			if(this.phase1Case1()){
+				this.phi1 = W*t;
+
+				if(t >= durationPhase1){
+					this.tofinalPhase();
+				}
 			}
 			else{
-				this.phase = FINAL_PHASE;
+				temp1 = W*t;
+				temp2 = 1;
+				temp3 = 2*(m/M)*Math.pow(r/R, 2.0);
+				temp4 = this.phi0;
+				this.phi1 =  ((temp1/(temp2 + temp3)) + temp4);
+		
+				if(t >= durationPhase1){
+					this.nextPhase();
+				}
 			}
 			break;
-		case FINAL_PHASE:
+		case PHASE_2:
+			
+			r = r0 - (v*t);
+			
+			temp1 = (-Math.sqrt(a))/v;
+			temp2 = Math.atan(Math.abs(r)/(Math.sqrt(a)));
+			temp3 = Math.atan(r0/(Math.sqrt(a)));
+			temp4 = W;
+			temp5 = phi1;
+				
+			phi2 = (temp1 *(temp2 - temp3)*temp4) + temp5;
+			
+			if(r <= 0){
+				phi2 = -phi2;
+			
+				if(r <= finalR){
+					this.nextPhase();
+				}
+				else if(r <= -R){
+					this.tofinalPhase();
+				}	
+			}
+		
+			
+//			System.out.println("Phi1:" + phi1);
+//			System.out.println("Phi2:" + phi2);
+			
+			break;
+		case PHASE_3:
+			
+			temp1 = M*Math.pow(R, 2.0);
+			temp2 = 2*m*Math.pow(r, 2.0);
+			
+			phi3 = ((temp1/(temp1 + temp2))*W*t) + phi2; //phiAux????? 
+			
+			temp1 = (-Math.sqrt(a))/v;
+			temp2 = Math.atan(Math.abs(r)/(Math.sqrt(a)));
+			temp3 = Math.atan(r0/(Math.sqrt(a)));
+			temp4 = W;
+			temp5 = phi2;
+				
+			phiAux = (temp1 *(temp2 - temp3)*temp4) + temp5;
+			
+			 
+			break;
+		case PHASE_4:
 			break;
 		}
 	}
 	
-	/**
-	 * Gets the bug coordinates as an array of Point2Ds object
-	 * @return An array of one point that is the planet
-	 */
-	public Point2D [] getBugsCoordinatesAsArray(){
-		Point2D bug [] = new Point2D[1];
-		bug[0] = new Point2D.Double();
-		bug[0] = this.bugCoordinates.toCartesianPoint();
-		return bug;
-	}
-	
-
-		
-	public boolean finalTimeReached(){
-		return (this.actualTime >= this.finalTime);
-	}
-
-	public double getFinalTime() {
-		return finalTime;
-	}
-
 	public double getActualTime() {
 		return actualTime;
 	}
 
-	public double getDiskPhi() {
-		return diskPhi;
-	}
 
 	public int getPhase() {
 		return phase;
 	}
 
-	public void setPhase(int phase) {
-		this.phase = phase;
-	}
-
-	public PolarPoint2D getBugCoordinates() {
-		return bugCoordinates;
-	}
-
-	public double getBugInitRadius() {
-		return bugInitRadius;
-	}
-
-	public void setBugInitRadius(double bugInitRadius) {
-		this.bugInitRadius = bugInitRadius;
-	}
-
-	public void setBugCoordinates(PolarPoint2D bugCoordinates) {
-		this.bugCoordinates = bugCoordinates;
+	public Time getT() {
+		return t;
 	}
 	
-	
-
-	public double getBugVelocity() {
-		return bugVelocity;
-	}
-
-	public void setBugVelocity(double bugVelocity) {
-		this.bugVelocity = bugVelocity;
-	}
-
-	public void calculateWf(){
+	/**
+	 * Advances to the next phase, and reset time.
+	 */
+	public void nextPhase(){
 		
-		double temp1, temp2, temp3, temp4;
-		//Wf
-		temp1 = this.diskInitVelocity;
-		temp2 = 1;
-		temp3 = (2*this.bugMass/this.diskMass);
-		temp4 = Math.pow(this.bugInitRadius/this.diskRadius, 2.0);
-		Wf = temp1/(temp2 + (temp3*temp4));
+		switch(phase){
+		case PHASE_0:
+			phi1 = phi0;
+			break;
+		case PHASE_1:
+			phi2 = phi1;
+			break;
+		case PHASE_2:
+			break;
+		case PHASE_3:
+			break;
+		case PHASE_4:
+			System.err.println("¡Final phase reached!");
+			System.exit(2);
+		}
 		
-
+		phase++;
+		t = new Time();
+		t.start();
 	}
 	
-	public void calculateWff(){
-		
-		double temp1, temp2, temp3, temp4;
-		//Wff
-		temp1 = this.bugMass*(Math.pow(this.bugInitRadius,2));
-		temp2 = 0.5*this.diskMass*(Math.pow(this.diskRadius, 2));
-		temp3 = this.bugMass*(Math.pow(this.bugFinalRadius,2));
-		Wff = (temp1 + temp2)/(temp2+temp3);
+	private void tofinalPhase(){
+		this.phase = PHASE_4;
 	}
 	
+	public boolean phase1Case1(){
+		if(phase == this.PHASE_1){
+			if(r0*Math.pow(W, 2.0) <= mu*g){
+				return true;
+			}
+		}
+		return false;
+	}
 	
+	public double getBugPhi(){
+		double actualPhi = phi0;
+
+		switch(phase){
+		case PHASE_0:
+			System.err.println("In Phase 0 there is no bug");
+			System.exit(3);
+		case PHASE_1:
+			actualPhi = phi1 - phi0;
+			break;
+		case PHASE_2:
+			actualPhi = phi2 - (phi0);
+			break;
+		case PHASE_3:
+			actualPhi = phi3;
+			break;
+		case PHASE_4:
+			actualPhi = phi4;
+			break;
+		default:
+			System.err.println("¡Final phase reached!");
+			System.exit(2);
+			break;
+		}
+		return actualPhi;
+	}
 	
+	public double getDiskPhi(){
+		
+		double actualPhi = phi0;
+		
+		switch(phase){
+			case PHASE_0:
+				actualPhi = phi0;
+				break;
+			case PHASE_1:
+				actualPhi = phi1;
+				break;
+			case PHASE_2:
+				actualPhi = phi2;
+				break;
+			case PHASE_3:
+				actualPhi = phi3;
+				break;
+			case PHASE_4:
+				actualPhi = phi4;
+				break;
+			default:
+				System.err.println("¡Final phase reached!");
+				System.exit(2);
+				return -1;
+		}
+		return actualPhi;
+	}
 	
 
-	
-	
-	
-	
-	
-	
-	
+	public double get_r() {
+		return r;
+	}
 
+	@Override
+	public boolean finalTimeReached() {
+		// TODO Auto-generated method stub
+		return false;
+	}	
 }
