@@ -111,9 +111,9 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 	BufferedImage backgroundImage; 
 
 	//Labels
-    private JLabel lblPeriodValue, textFinalTime, textFinalRadius, labelActualTime;  
+    private JLabel lblDiskWValue;  
     private JLabel lblFallRadiusValue, lblBugVelocityValue, lblVelocityValue, lblInitMassValue;
-    private JLabel lblActualSimulationValue, lblFrictionValue;
+    private JLabel lblFrictionValue, lblDiskW;
     
     //Sliders
     private JSlider sliderBugInitMass, sliderFallRadius, sliderBugVelocity; 
@@ -309,16 +309,11 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 
 		PolarPoint2D bug;
 		end = false;
-		double anterior =0;
-		double actual = 0;
+
 
 		while(!end){
 
-			
-			actual = model.getDiskPhi();
-			System.out.println("Diferencia:" + (anterior-actual));
-			anterior = actual;
-			
+	
 			this.rotatedDiskImage = ImageProcessing.rotateRadians(this.diskImage, model.getDiskPhi());
 			chart.deleteImage(diskAnnotation);
 			
@@ -330,15 +325,8 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(), 0);
 					break;
 				case AngularMDiskModel.PHASE_1:
-					if(!model.phase1Case1()){
-						 bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi());
-						 this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, model.getBugPhi() + this.bugOrientation);
-					}
-					else{
-						bug = new PolarPoint2D(model.get_r()*100, 0);
-						this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage,this.bugOrientation);
-					}
-					
+					bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi());
+					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, model.getBugPhi() + this.bugOrientation);
 					chart.deleteImage(bugAnnotation);
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint()); 
 					break;
@@ -349,12 +337,19 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint());					
 					break;
 				case AngularMDiskModel.PHASE_3:
-					chart.deleteImage(bugAnnotation);
-					end = true;
 					break;
 				case AngularMDiskModel.PHASE_4:
 					chart.deleteImage(bugAnnotation);
 					end = true;
+					
+					sliderFriction.setEnabled(true);
+					sliderBugInitMass.setEnabled(true);
+					sliderBugVelocity.setEnabled(true);
+					sliderDiskVelocity.setEnabled(true);
+					sliderFallRadius.setEnabled(true);
+					
+					btnLaunchSimulation.setText("Iniciar");
+					
 					break;
 			}
 			
@@ -362,10 +357,19 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 			
 			repaint();
 
+			//Begin step of simulation
 			model.getT().pause();
 			model.simulate();
-			model.getT().start();
 			
+			String WDisk = String.valueOf((model.getWDisk()));
+			if(WDisk.length() > 6){
+				lblDiskWValue.setText(WDisk.substring(0,8));
+			}
+			else{
+				lblDiskWValue.setText(WDisk);
+			}
+			model.getT().start();
+			//End Step of simulation
 	
 
 			try {
@@ -482,35 +486,12 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		labelOutputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panelTitleOutputs.add(labelOutputData);
 		
-		JLabel labelTiempoFinal = new JLabel("Tiempo Final:");
-		labelTiempoFinal.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblDiskW = new JLabel("Velocidad Disco:");
+		lblDiskW.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel labelOutput3 = new JLabel("T:");
-		labelOutput3.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		JLabel labelOutput2 = new JLabel("Radio Final:");
-		labelOutput2.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		lblPeriodValue = new JLabel();
-		lblPeriodValue.setText("0");
-		lblPeriodValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		textFinalTime = new JLabel();
-		textFinalTime.setText("0");
-		textFinalTime.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		textFinalRadius = new JLabel();
-		textFinalRadius.setText("0");
-		textFinalRadius.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		JLabel labelTime = new JLabel("Tiempo Actual:");
-		labelTime.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		labelActualTime = new JLabel("0");
-		labelActualTime.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		lblActualSimulationValue = new JLabel("0");
-		lblActualSimulationValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblDiskWValue = new JLabel();
+		lblDiskWValue.setText("0");
+		lblDiskWValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
@@ -519,33 +500,10 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 				.addGroup(gl_panelOutputs.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(labelTiempoFinal, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
-									.addPreferredGap(ComponentPlacement.RELATED))
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(labelTime)
-									.addGap(27)))
-							.addGroup(gl_panelOutputs.createSequentialGroup()
-								.addComponent(labelOutput3, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
-								.addGap(70)))
-						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(labelOutput2, GroupLayout.PREFERRED_SIZE, 68, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED)))
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
-						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(textFinalRadius, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(textFinalTime, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(labelActualTime, GroupLayout.DEFAULT_SIZE, 106, Short.MAX_VALUE))
-							.addGap(18)
-							.addComponent(lblActualSimulationValue, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
-							.addGap(4))
-						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblPeriodValue, GroupLayout.PREFERRED_SIZE, 93, GroupLayout.PREFERRED_SIZE)
-							.addGap(143))))
+					.addComponent(lblDiskW, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(lblDiskWValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
+					.addGap(132))
 		);
 		gl_panelOutputs.setVerticalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
@@ -553,22 +511,9 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelTiempoFinal)
-						.addComponent(textFinalTime))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelTime, GroupLayout.PREFERRED_SIZE, 23, GroupLayout.PREFERRED_SIZE)
-						.addComponent(labelActualTime))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(labelOutput3)
-						.addComponent(lblPeriodValue))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(textFinalRadius, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(labelOutput2)
-						.addComponent(lblActualSimulationValue))
-					.addGap(20))
+						.addComponent(lblDiskW)
+						.addComponent(lblDiskWValue))
+					.addGap(95))
 		);
 		panelOutputs.setLayout(gl_panelOutputs);
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);
@@ -655,7 +600,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		lblBugVelocityValue = new JLabel("1");
 		lblBugVelocityValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblVelocityValue = new JLabel("2.5");
+		lblVelocityValue = new JLabel("0.5");
 		lblVelocityValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		
@@ -695,14 +640,14 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		sliderBugVelocity.setMinorTickSpacing(1);
 		
 		sliderDiskVelocity = new JSlider();
-		sliderDiskVelocity.setMaximum(50);
-		sliderDiskVelocity.setMinimum(5);
+		sliderDiskVelocity.setMaximum(10);
+		sliderDiskVelocity.setMinimum(1);
 		sliderDiskVelocity.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				sliderDiskVelocityEvent();
 			}
 		});
-		sliderDiskVelocity.setValue(25);
+		sliderDiskVelocity.setValue(5);
 		sliderDiskVelocity.setMinorTickSpacing(1);
 		
 		JLabel lblCoeficienteDeRozamiento = new JLabel("Coef de Rozamiento");
@@ -720,7 +665,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		sliderFriction.setValue(25);
 		sliderFriction.setMinorTickSpacing(1);
 		sliderFriction.setMinimum(1);
-		sliderFriction.setMaximum(50);
+		sliderFriction.setMaximum(90);
 	
 		
 		

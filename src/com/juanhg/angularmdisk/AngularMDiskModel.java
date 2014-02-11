@@ -46,6 +46,7 @@ public class AngularMDiskModel extends Model {
 	
 	private int phase;
 	private Time t;
+	double lastT = 0.0;
 	
 	//Constants
 	private final double M = 200;
@@ -62,18 +63,18 @@ public class AngularMDiskModel extends Model {
 	
 	//Calculated parameters
 	private double phi0, phi1, phi2, phi3, phi4, phiAux;
-	private double phi1B,phi2B,phi3B;
+	private double lastPhi = 0;
+	double lastphi2 = 0.0;
 	private double r; //Actual radius
-	private double x;
+	private double rPhase3; //Radius that indicate the phase 3
 	private double a;
-	private double finalR;
 	private double Wf;
+	private double WDisk;
 	
 	
 	public AngularMDiskModel(double m, double r0, double v, double W, double mu){ 
 	
-		final int recursion = 3;
-		double temp1, temp2, temp3, temp4;
+		double temp1, temp2;
 		
 		this.m = m;
 		this.r0 = r0;
@@ -84,55 +85,84 @@ public class AngularMDiskModel extends Model {
 		this.phase = 0;
 		this.t = new Time();
 		
+		
 		this.r = r0;
-		this.x = 0.5*M*Math.pow(R, 2);
 		
-		for(int i = 0; i < recursion; i++){
-			this.x = calculateX(x);
-		}
-		
-		finalR = - Math.sqrt((1/m)*(this.x - (0.5*M*Math.pow(R, 2.0))));
+		this.calculateRPhase3();
 		
 		temp1 = 0.5*M*Math.pow(R, 2.0);
 		temp2 = m*Math.pow(r, 2.0);
-		temp3 = W;
 		
 		Wf = (temp1/(temp1 + temp2))*W;
 		
-		a = 0.5*(M/this.m)*(Math.pow(R, 2)/this.v);
+		a = 0.5*(M/this.m)*(Math.pow(R, 2));
 		
 		
 		
 	}
 	
-	private double calculateX (double x){
-		double result = 0;
-		double temp0, temp1, temp2, temp3, temp4;
+	/**
+	 * Calculate de R that shows the begin of phase3
+	 */
+	private void calculateRPhase3 (){
+		double temp1, temp2, temp3, temp4, fx, fx1, x;
+		double times = 50;
+
+		x = 0.5*M*Math.pow(R, 2);
+
+
+		for(int i = 0; i < times; i++){
+			temp1 = Math.pow(mu*g,2.0)*Math.pow(x, 4.0);
+			temp2 = 4*Math.pow(a, 2.0)*Math.pow(W, 2)*Math.pow(v, 2.0)*Math.pow(x, 2.0);
+			temp3 = Math.pow(a, 4.0)*Math.pow(W, 4.0)*(x/m);
+			temp4 = (Math.pow(a, 5.0)/m)*Math.pow(W, 4.0);
+
+			fx = temp1 - temp2 - temp3 + temp4;
+
+			temp1 = 4*Math.pow(M*g, 2.0)*Math.pow(x, 3.0);
+			temp2 = 8*Math.pow(a, 2.0)*Math.pow(W, 2.0)*Math.pow(v,2.0)*x;
+			temp3 = (Math.pow(a, 4.0)*Math.pow(W, 4.0))/m;
+
+			fx1 = temp1 - temp2 - temp3;
+
+			x = x - (fx/fx1);
+		}
 		
-		temp0 = 0.5*M*Math.pow(R, 2.0);
+		temp1 = 1/m;
+		temp2 = x -0.5*M*Math.pow(R, 2.0);
 		
-		temp1 = mu*g*Math.pow(x, 4.0);
-		temp2 = 4*Math.pow(v, 2) * Math.pow(temp0,2.0) * Math.pow(x, 2.0);
-		temp3 = temp0/m;
-		temp4 = m;
-		
-		result = (temp1 - temp2 + temp3)*temp4;
-		return result;
+		this.rPhase3 = -(Math.sqrt(temp1*temp2));
+		System.out.println("radio:" +  rPhase3);
 	}
 	
+	/**
+	 * Actualizes the simulation according the actual time
+	 */
 	@Override
 	public void simulate() {
 		
 		double temp1, temp2, temp3, temp4, temp5;
 		double t = ((double)this.t.getTime())/1000.0;
+		double aux = 0;
+		double centerPhi;
 		
+			
 		switch(phase){
 		case PHASE_0:
 			this.phi0 = (W*t);
+			
+			WDisk = (this.phi0-lastPhi)/(t - lastT);
+			lastPhi = this.phi0;
+			lastT = t;
+			
 			break;
 		case PHASE_1:
-			if(this.phase1Case1()){
+			if(r0*Math.pow(W, 2.0) > mu*g){
 				this.phi1 = W*t;
+				
+				WDisk = (this.phi1-lastPhi)/(t - lastT);
+				lastPhi = this.phi1;
+				lastT = t;
 
 				if(t >= durationPhase1){
 					this.tofinalPhase();
@@ -145,10 +175,15 @@ public class AngularMDiskModel extends Model {
 				temp4 = this.phi0;
 				this.phi1 =  ((temp1/(temp2 + temp3)) + temp4);
 		
+				WDisk = (this.phi1-lastPhi)/(t - lastT);
+				lastPhi = this.phi1;
+				lastT = t;
+				
 				if(t >= durationPhase1){
 					this.nextPhase();
 				}
 			}
+			
 			break;
 		case PHASE_2:
 			
@@ -160,22 +195,52 @@ public class AngularMDiskModel extends Model {
 			temp4 = W;
 			temp5 = phi1;
 				
+			
 			phi2 = (temp1 *(temp2 - temp3)*temp4) + temp5;
+//			System.out.println(phi2);
 			
-			if(r <= 0){
-				phi2 = -phi2;
-			
-				if(r <= finalR){
+			if(r > 0){
+				
+				WDisk = (this.phi2-lastPhi)/(t - lastT);
+				lastPhi = this.phi2;
+				lastT = t;
+			}
+			else{
+				
+				temp1 = (-Math.sqrt(a))/v;
+				temp2 = 0;
+				temp3 = Math.atan(r0/(Math.sqrt(a)));
+				temp4 = W;
+				temp5 = phi1;
+					
+				
+				centerPhi = (temp1 *(temp2 - temp3)*temp4) + temp5;
+				aux = centerPhi - phi2;
+				phi2 = centerPhi + aux;
+				if(aux < 0){
+					System.err.print("lastphi2 - phi2 es negativo");
+					System.exit(1);
+				}
+			   
+				
+			    //Velocity
+			    WDisk = (this.phi2-lastPhi)/(t - lastT);
+				lastPhi = this.phi2;
+				lastT = t;
+			    
+				if(r <= rPhase3){
 					this.nextPhase();
 				}
 				else if(r <= -R){
 					this.tofinalPhase();
 				}	
+				
 			}
-		
 			
-//			System.out.println("Phi1:" + phi1);
-//			System.out.println("Phi2:" + phi2);
+			if(WDisk < 0){
+				System.err.println("Velocidad Negativa");
+				System.exit(1);
+			}
 			
 			break;
 		case PHASE_3:
@@ -183,15 +248,8 @@ public class AngularMDiskModel extends Model {
 			temp1 = M*Math.pow(R, 2.0);
 			temp2 = 2*m*Math.pow(r, 2.0);
 			
-			phi3 = ((temp1/(temp1 + temp2))*W*t) + phi2; //phiAux????? 
-			
-			temp1 = (-Math.sqrt(a))/v;
-			temp2 = Math.atan(Math.abs(r)/(Math.sqrt(a)));
-			temp3 = Math.atan(r0/(Math.sqrt(a)));
-			temp4 = W;
-			temp5 = phi2;
-				
-			phiAux = (temp1 *(temp2 - temp3)*temp4) + temp5;
+			//DiskDesplacement
+			phi3 = ((temp1/(temp1 + temp2))*W*t) + phi2;  
 			
 			 
 			break;
@@ -200,17 +258,11 @@ public class AngularMDiskModel extends Model {
 		}
 	}
 	
-	public double getActualTime() {
-		return actualTime;
-	}
-
-
-	public int getPhase() {
-		return phase;
-	}
-
-	public Time getT() {
-		return t;
+	/**
+	 * Jump to the final phase
+	 */
+	private void tofinalPhase(){
+		this.phase = PHASE_4;
 	}
 	
 	/**
@@ -234,23 +286,13 @@ public class AngularMDiskModel extends Model {
 			System.exit(2);
 		}
 		
+		lastT = 0;
 		phase++;
 		t = new Time();
 		t.start();
 	}
 	
-	private void tofinalPhase(){
-		this.phase = PHASE_4;
-	}
-	
-	public boolean phase1Case1(){
-		if(phase == this.PHASE_1){
-			if(r0*Math.pow(W, 2.0) <= mu*g){
-				return true;
-			}
-		}
-		return false;
-	}
+	/** GETTERS & SETTERS **/
 	
 	public double getBugPhi(){
 		double actualPhi = phi0;
@@ -260,7 +302,12 @@ public class AngularMDiskModel extends Model {
 			System.err.println("In Phase 0 there is no bug");
 			System.exit(3);
 		case PHASE_1:
-			actualPhi = phi1 - phi0;
+			if(r0*Math.pow(W, 2.0) > mu*g){
+				actualPhi = 0;
+			}
+			else{
+				actualPhi = phi1 - phi0;
+			}
 			break;
 		case PHASE_2:
 			actualPhi = phi2 - (phi0);
@@ -307,6 +354,19 @@ public class AngularMDiskModel extends Model {
 		return actualPhi;
 	}
 	
+	
+	public double getActualTime() {
+		return actualTime;
+	}
+
+
+	public int getPhase() {
+		return phase;
+	}
+
+	public Time getT() {
+		return t;
+	}
 
 	public double get_r() {
 		return r;
@@ -314,7 +374,10 @@ public class AngularMDiskModel extends Model {
 
 	@Override
 	public boolean finalTimeReached() {
-		// TODO Auto-generated method stub
 		return false;
+	}
+
+	public double getWDisk() {
+		return WDisk;
 	}	
 }
