@@ -112,8 +112,8 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 
 	//Labels
     private JLabel lblDiskWValue;  
-    private JLabel lblFallRadiusValue, lblBugVelocityValue, lblVelocityValue, lblInitMassValue;
-    private JLabel lblFrictionValue, lblDiskW;
+    private JLabel lblFallRadiusValue, lblBugVelocityValue, lblVelocityValue, lblInitMassValue, lblCriticRadiusValue;
+    private JLabel lblFrictionValue, lblDiskW, lblCriticRadius;
     
     //Sliders
     private JSlider sliderBugInitMass, sliderFallRadius, sliderBugVelocity; 
@@ -337,6 +337,10 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint());					
 					break;
 				case AngularMDiskModel.PHASE_3:
+					bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi());
+					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, this.bugOrientation);
+					chart.deleteImage(bugAnnotation);
+					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint());
 					break;
 				case AngularMDiskModel.PHASE_4:
 					chart.deleteImage(bugAnnotation);
@@ -355,12 +359,6 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 			
 			panelSimulation.actualizaGrafica(chart);
 			
-			repaint();
-
-			//Begin step of simulation
-			model.getT().pause();
-			model.simulate();
-			
 			String WDisk = String.valueOf((model.getWDisk()));
 			if(WDisk.length() > 6){
 				lblDiskWValue.setText(WDisk.substring(0,8));
@@ -368,8 +366,27 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 			else{
 				lblDiskWValue.setText(WDisk);
 			}
+			
+			String criticRadius = String.valueOf(-(model.getCriticRadius()));
+			if(criticRadius.length() > 6){
+				lblCriticRadiusValue.setText(criticRadius.substring(0,8));
+			}
+			else{
+				lblCriticRadiusValue.setText(criticRadius);
+			}
+			
+			repaint();
+
+			//Begin step of simulation
+			model.getT().pause();
+			model.simulate();
 			model.getT().start();
 			//End Step of simulation
+			
+			
+			
+			
+		
 	
 
 			try {
@@ -492,6 +509,13 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		lblDiskWValue = new JLabel();
 		lblDiskWValue.setText("0");
 		lblDiskWValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblCriticRadius = new JLabel("Radio Cr\u00EDtico:");
+		lblCriticRadius.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblCriticRadiusValue = new JLabel();
+		lblCriticRadiusValue.setText("0");
+		lblCriticRadiusValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
@@ -500,10 +524,16 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 				.addGroup(gl_panelOutputs.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(lblDiskW, GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+					.addComponent(lblDiskW, GroupLayout.DEFAULT_SIZE, 119, Short.MAX_VALUE)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(lblDiskWValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
 					.addGap(132))
+				.addGroup(Alignment.LEADING, gl_panelOutputs.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(lblCriticRadius, GroupLayout.PREFERRED_SIZE, 119, GroupLayout.PREFERRED_SIZE)
+					.addGap(6)
+					.addComponent(lblCriticRadiusValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(122, Short.MAX_VALUE))
 		);
 		gl_panelOutputs.setVerticalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
@@ -513,7 +543,11 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 						.addComponent(lblDiskW)
 						.addComponent(lblDiskWValue))
-					.addGap(95))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(lblCriticRadius, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblCriticRadiusValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+					.addGap(121))
 		);
 		panelOutputs.setLayout(gl_panelOutputs);
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);

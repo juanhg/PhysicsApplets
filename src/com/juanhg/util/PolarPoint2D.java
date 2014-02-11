@@ -29,6 +29,16 @@ public class PolarPoint2D {
 	}
 	
 	/**
+	 * Transforms the Point2D in a PolarPoint2D
+	 * @return A Point2D that is the point represented in Cartesian coordinates
+	 */
+	public PolarPoint2D (Point2D cartesian){
+		this.radius = (cartesianToPolar(cartesian.getX(), cartesian.getY())).radius;
+		this.phi = (cartesianToPolar(cartesian.getX(), cartesian.getY())).phi;
+	}
+	
+	
+	/**
 	 * Transforms the Polar Point in a cartesianPoint
 	 * @return A Point2D that is the point represented in Cartesian coordinates
 	 */

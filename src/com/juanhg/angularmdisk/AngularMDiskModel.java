@@ -28,6 +28,7 @@
 package com.juanhg.angularmdisk;
 
 import com.juanhg.model.Model;
+import com.juanhg.util.PolarPoint2D;
 import com.juanhg.util.Time;
 
 /**
@@ -66,10 +67,11 @@ public class AngularMDiskModel extends Model {
 	private double lastPhi = 0;
 	double lastphi2 = 0.0;
 	private double r; //Actual radius
-	private double rPhase3; //Radius that indicate the phase 3
+	private double criticRadius; //Radius that indicate the phase 3
 	private double a;
 	private double Wf;
 	private double WDisk;
+	private double x,y;
 	
 	
 	public AngularMDiskModel(double m, double r0, double v, double W, double mu){ 
@@ -105,34 +107,34 @@ public class AngularMDiskModel extends Model {
 	 * Calculate de R that shows the begin of phase3
 	 */
 	private void calculateRPhase3 (){
-		double temp1, temp2, temp3, temp4, fx, fx1, x;
+		double temp1, temp2, temp3, temp4, fx, fx1, xAux;
 		double times = 50;
+		double A;
+		
+		A = (2*m)/(M*Math.pow(R, 2));
 
-		x = 0.5*M*Math.pow(R, 2);
+		xAux = 1 + (A*Math.pow((mu*g),2))/Math.pow(W, 4);
 
 
 		for(int i = 0; i < times; i++){
-			temp1 = Math.pow(mu*g,2.0)*Math.pow(x, 4.0);
-			temp2 = 4*Math.pow(a, 2.0)*Math.pow(W, 2)*Math.pow(v, 2.0)*Math.pow(x, 2.0);
-			temp3 = Math.pow(a, 4.0)*Math.pow(W, 4.0)*(x/m);
-			temp4 = (Math.pow(a, 5.0)/m)*Math.pow(W, 4.0);
+			temp1 = Math.pow(mu*g,2.0)*Math.pow(xAux, 4.0);
+			temp2 = 16*Math.pow(a, 2.0)*Math.pow(W, 2)*Math.pow(v, 2.0)*Math.pow(xAux, 2.0);
+			temp3 = xAux*Math.pow(W, 2)*(16*Math.pow(v, 2) - Math.pow(W, 2.0)/A);
+			temp4 = Math.pow(W, 2.0)*(4*Math.pow(v, 2.0) - Math.pow(W, 2)/A);
 
-			fx = temp1 - temp2 - temp3 + temp4;
+			fx = temp1 - temp2 + temp3 - temp4;
 
-			temp1 = 4*Math.pow(M*g, 2.0)*Math.pow(x, 3.0);
-			temp2 = 8*Math.pow(a, 2.0)*Math.pow(W, 2.0)*Math.pow(v,2.0)*x;
-			temp3 = (Math.pow(a, 4.0)*Math.pow(W, 4.0))/m;
+			temp1 = 4*Math.pow(M*g, 2.0)*Math.pow(xAux, 3.0);
+			temp2 = 32*Math.pow(W, 2.0)*Math.pow(v,2)*xAux;
+			temp3 = Math.pow(W, 2)*(16*Math.pow(v, 2) - Math.pow(W, 2.0)/A);
 
-			fx1 = temp1 - temp2 - temp3;
+			fx1 = temp1 - temp2 + temp3;
 
-			x = x - (fx/fx1);
+			xAux = xAux - (fx/fx1);
 		}
 		
-		temp1 = 1/m;
-		temp2 = x -0.5*M*Math.pow(R, 2.0);
-		
-		this.rPhase3 = -(Math.sqrt(temp1*temp2));
-		System.out.println("radio:" +  rPhase3);
+		this.criticRadius = -(Math.sqrt((xAux-1)/A));
+		System.out.println("radio:" +  criticRadius);
 	}
 	
 	/**
@@ -158,7 +160,7 @@ public class AngularMDiskModel extends Model {
 			break;
 		case PHASE_1:
 			if(r0*Math.pow(W, 2.0) > mu*g){
-				this.phi1 = W*t;
+				this.phi1 = W*t + phi0;
 				
 				WDisk = (this.phi1-lastPhi)/(t - lastT);
 				lastPhi = this.phi1;
@@ -228,8 +230,9 @@ public class AngularMDiskModel extends Model {
 				lastPhi = this.phi2;
 				lastT = t;
 			    
-				if(r <= rPhase3){
+				if(r <= criticRadius){
 					this.nextPhase();
+					this.simulate();
 				}
 				else if(r <= -R){
 					this.tofinalPhase();
@@ -245,17 +248,38 @@ public class AngularMDiskModel extends Model {
 			break;
 		case PHASE_3:
 			
+			
 			temp1 = M*Math.pow(R, 2.0);
-			temp2 = 2*m*Math.pow(r, 2.0);
+			temp2 = 2*m*Math.pow(criticRadius, 2.0);
 			
 			//DiskDesplacement
 			phi3 = ((temp1/(temp1 + temp2))*W*t) + phi2;  
 			
+			temp1 = v*Math.cos(phi2 - phi0);
+			temp2 = (criticRadius*Math.sin(phi2- phi0))*Wf;
+			temp3 = criticRadius*Math.cos(phi2- phi0);
+			
+			x = (temp1 - temp2)*t + temp3;
+			
+			temp1 = v*Math.sin(phiAux);
+			temp2 = criticRadius*Math.cos(phi2- phi0)*Wf;
+			temp3 = criticRadius*Math.sin(phi2- phi0);
+			
+			y = (temp1 + temp2)*t + temp3;
+			
+			r = (PolarPoint2D.cartesianToPolar(x, y)).getRadius();
+			
+			  //Velocity
+		    WDisk = (this.phi3-lastPhi)/(t - lastT);
+			lastPhi = this.phi3;
+			lastT = t;
 			 
 			break;
 		case PHASE_4:
 			break;
 		}
+		
+		System.out.println(lastPhi);
 	}
 	
 	/**
@@ -278,6 +302,7 @@ public class AngularMDiskModel extends Model {
 			phi2 = phi1;
 			break;
 		case PHASE_2:
+			phi3 = phi2;
 			break;
 		case PHASE_3:
 			break;
@@ -313,7 +338,7 @@ public class AngularMDiskModel extends Model {
 			actualPhi = phi2 - (phi0);
 			break;
 		case PHASE_3:
-			actualPhi = phi3;
+			actualPhi = PolarPoint2D.cartesianToPolar(x,y).getPhi();
 			break;
 		case PHASE_4:
 			actualPhi = phi4;
@@ -370,6 +395,12 @@ public class AngularMDiskModel extends Model {
 
 	public double get_r() {
 		return r;
+	}
+	
+	
+
+	public double getCriticRadius() {
+		return criticRadius;
 	}
 
 	@Override
