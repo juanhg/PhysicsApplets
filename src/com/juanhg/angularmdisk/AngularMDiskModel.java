@@ -273,6 +273,10 @@ public class AngularMDiskModel extends Model {
 		    WDisk = (this.phi3-lastPhi)/(t - lastT);
 			lastPhi = this.phi3;
 			lastT = t;
+			
+			if(Math.abs(x*100) >= 30 || Math.abs(y*100) >= 30){
+				this.tofinalPhase();
+			}
 			 
 			break;
 		case PHASE_4:
@@ -319,7 +323,7 @@ public class AngularMDiskModel extends Model {
 	
 	/** GETTERS & SETTERS **/
 	
-	public double getBugPhi(){
+	public double getBugPhi(boolean cam1){
 		double actualPhi = phi0;
 
 		switch(phase){
@@ -328,17 +332,37 @@ public class AngularMDiskModel extends Model {
 			System.exit(3);
 		case PHASE_1:
 			if(r0*Math.pow(W, 2.0) > mu*g){
-				actualPhi = 0;
+				if(cam1 == true){
+					actualPhi = 0;
+				}
+				else{
+					actualPhi = (-phi1);
+				}
 			}
 			else{
-				actualPhi = phi1 - phi0;
+				if(cam1 == true){
+					actualPhi = phi1 - phi0;
+				}
+				else{
+					actualPhi = -phi0;
+				}
 			}
 			break;
 		case PHASE_2:
-			actualPhi = phi2 - (phi0);
+			if(cam1 == true){
+				actualPhi = phi2 - (phi0);
+			}
+			else{
+				actualPhi = -phi0;
+			}
 			break;
 		case PHASE_3:
-			actualPhi = PolarPoint2D.cartesianToPolar(x,y).getPhi();
+			if(cam1 == true){
+				actualPhi = PolarPoint2D.cartesianToPolar(x,y).getPhi();
+			}
+			else{
+				actualPhi = PolarPoint2D.cartesianToPolar(x,y).getPhi() - (phi2);
+			}
 			break;
 		case PHASE_4:
 			actualPhi = phi4;
@@ -369,7 +393,7 @@ public class AngularMDiskModel extends Model {
 				actualPhi = phi3;
 				break;
 			case PHASE_4:
-				actualPhi = phi4;
+				actualPhi = phi3;
 				break;
 			default:
 				System.err.println("¡Final phase reached!");
@@ -398,6 +422,16 @@ public class AngularMDiskModel extends Model {
 	}
 	
 	
+	
+	
+
+	public double getCriticPhi() {
+		return phi2 - phi0;
+	}
+
+	public void setPhi2(double phi2) {
+		this.phi2 = phi2;
+	}
 
 	public double getCriticRadius() {
 		return criticRadius;
@@ -410,5 +444,31 @@ public class AngularMDiskModel extends Model {
 
 	public double getWDisk() {
 		return WDisk;
+	}
+
+	public double getX() {
+		return x;
+	}
+
+	public void setX(double x) {
+		this.x = x;
+	}
+
+	public double getY() {
+		return y;
+	}
+
+	public void setY(double y) {
+		this.y = y;
+	}
+
+	public double getPhi0() {
+		return phi0;
+	}
+
+	public double getPhi2() {
+		return phi2;
 	}	
+	
+	
 }
