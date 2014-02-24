@@ -8,6 +8,7 @@
     					Francisco Nogueras Lara
     					Juan Hernandez Garcia
     					
+    				
     					
 						
 						University of Granada
@@ -26,7 +27,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package com.juanhg.angularmdisk;
+package com.juanhg.icewalker;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -491,7 +492,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 				lblDiskWValue.setText(WDisk);
 			}
 			
-			String criticRadius = String.valueOf(Math.abs((model.getCriticRadius()*100.0)));
+			String criticRadius = String.valueOf(-Math.round((model.getCriticRadius()*100)));
 			if(criticRadius.length() > 5){
 				lblCriticRadiusValue.setText(criticRadius.substring(0,5));
 			}

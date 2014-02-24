@@ -25,7 +25,7 @@
 */
 
 
-package com.juanhg.angularmdisk;
+package com.juanhg.icewalker;
 
 import com.juanhg.model.Model;
 import com.juanhg.util.PolarPoint2D;
@@ -133,8 +133,8 @@ public class AngularMDiskModel extends Model {
 			xAux = xAux - (fx/fx1);
 		}
 		
-		this.criticRadius = -(Math.sqrt((xAux-1.0)/A));
-//		System.out.println("radio:" +  criticRadius);
+		this.criticRadius = -(Math.sqrt((xAux-1)/A));
+		System.out.println("radio:" +  criticRadius);
 	}
 	
 	/**
@@ -159,9 +159,6 @@ public class AngularMDiskModel extends Model {
 			
 			break;
 		case PHASE_1:
-			double aux3 = r0*Math.pow(W, 2.0);
-			double aux4 = mu*g;
-			
 			if(r0*Math.pow(W, 2.0) > mu*g){
 				this.phi1 = W*t + phi0;
 				
@@ -173,7 +170,7 @@ public class AngularMDiskModel extends Model {
 					this.tofinalPhase();
 				}
 			}
-			else if(r0*Math.pow(W, 2.0) < mu*g){
+			else{
 				temp1 = W*t;
 				temp2 = 1;
 				temp3 = 2*(m/M)*Math.pow(r/R, 2.0);
@@ -187,10 +184,6 @@ public class AngularMDiskModel extends Model {
 				if(t >= durationPhase1){
 					this.nextPhase();
 				}
-			}
-			else{
-				this.nextPhase();
-				this.nextPhase();
 			}
 			
 			break;
