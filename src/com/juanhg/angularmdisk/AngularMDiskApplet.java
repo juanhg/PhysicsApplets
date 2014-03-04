@@ -31,25 +31,24 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
-import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JSlider;
+import javax.swing.JTabbedPane;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.CompoundBorder;
@@ -61,21 +60,10 @@ import javax.swing.event.ChangeListener;
 
 import org.jfree.chart.annotations.XYAnnotation;
 
-import sun.swing.BakedArrayList;
-
 import com.juanhg.util.ImageProcessing;
 import com.juanhg.util.PolarPoint2D;
-import com.juanhg.util.Time;
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
-
-import javax.swing.JTabbedPane;
-
-import java.awt.Insets;
-import java.awt.GridLayout;
-
-import javax.swing.SwingConstants;
-import javax.swing.JRadioButton;
 
 public class AngularMDiskApplet extends JApplet implements Runnable {
 	
@@ -535,7 +523,8 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		//Crear modelo
 		model = new AngularMDiskModel(m, r0, v, W, mu);
 		
-		chart = new Grafica(nullArray,"Conservación del Momento Angular", "Bug", "Coordenada X", "Coordenada Y", false, Color.BLUE,1f,false);
+		
+		chart = new Grafica(nullArray,"Conservación del Momento Angular", "Bug", "Coordenada X", "", false, Color.BLUE,1f,false);
 		chart.setRangeAxis(this.infXLimit, this.supXLimit, this.infYLimit, this.supYLimit);
 		
 		
@@ -603,7 +592,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		panelTiempo.setToolTipText("");
 		panelTiempo.setBorder(new MatteBorder(1, 1, 1, 1, (Color) new Color(0, 0, 0)));
 		
-		btnPhase1 = new JButton("Lanzar Bicho");
+		btnPhase1 = new JButton("Lanzar Insecto");
 		btnPhase1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				btnPhase1Event();
@@ -779,13 +768,13 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 		);
 		panelTiempo.setLayout(gl_panelTiempo);
 		
-		JLabel LabelBugMass = new JLabel("Masa del Bicho");
+		JLabel LabelBugMass = new JLabel("Masa del Insecto");
 		LabelBugMass.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel labelFallRadio = new JLabel("Radio de Ca\u00EDda");
 		labelFallRadio.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel labelBugVelocity = new JLabel("Velocidad del Bicho");
+		JLabel labelBugVelocity = new JLabel("Velocidad del Insecto");
 		labelBugVelocity.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel labelDiskVelocity = new JLabel("Velocidad del Disco");
@@ -963,8 +952,8 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 					.addContainerGap()
 					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, 432, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panel_visualizar, GroupLayout.DEFAULT_SIZE, 592, Short.MAX_VALUE)
-					.addContainerGap())
+					.addComponent(panel_visualizar, GroupLayout.PREFERRED_SIZE, 560, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(32, Short.MAX_VALUE))
 		);
 		groupLayout.setVerticalGroup(
 			groupLayout.createParallelGroup(Alignment.TRAILING)

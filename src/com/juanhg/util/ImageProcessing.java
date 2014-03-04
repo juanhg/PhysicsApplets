@@ -3,8 +3,29 @@ package com.juanhg.util;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 public class ImageProcessing {
+	
+	/**
+	 * Load a image in the especified path
+	 * @param fileName Absolute or relative path to the image
+	 * @return BufferedImage that contains the image
+	 */
+	public BufferedImage loadImage(String fileName){
+
+		BufferedImage buff = null;
+		try {
+			buff = ImageIO.read(getClass().getResourceAsStream(fileName));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		return buff;
+	}
 
 	/**
 	 * Rotate an square image (degrees).

@@ -159,8 +159,6 @@ public class AngularMDiskModel extends Model {
 			
 			break;
 		case PHASE_1:
-			double aux3 = r0*Math.pow(W, 2.0);
-			double aux4 = mu*g;
 			
 			if(r0*Math.pow(W, 2.0) > mu*g){
 				this.phi1 = W*t + phi0;
