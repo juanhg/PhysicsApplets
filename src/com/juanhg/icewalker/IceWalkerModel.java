@@ -28,6 +28,7 @@
 package com.juanhg.icewalker;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Point2D.Double;
 
 import com.juanhg.model.Model;
 import com.juanhg.util.Time;
@@ -52,23 +53,34 @@ public class IceWalkerModel extends Model {
 	static final int PHASE_9 = 9;
 	static final int PHASE_10 = 10;
 	static final int PHASE_11 = 11;
+	static final int PHASE_12 = 12;
+	static final int PHASE_13 = 13;
+	static final int PHASE_14 = 14;
 	
-	final double X0Box = 62.5;
-	final double Y0Box = 15;
+	final double X0Box = 25;
+	final double Y0Box = 13;
 	final double X0Person = 160;
 	final double Y0Person = 223;
+	final double X0Pulley = 25;
+	final double Y0Pulley = 246;
 	
-	private int phase;
+	private int currentPhase;
+	private int previousPhase;
 	private Time t;
 	double lastT = 0.0;
 	
 	//Constants
 	private final double M = 60.0;
-	private final double m = 10.0;
+	private final double m = 25.0;
 	private final double L = 0.25;
 	private final double Ro = 1000;
 	private final double g = 9.8;
 	private final double deep = 1.20;
+	private final double yTopLimit = 2.0;
+	private final double xfall = -0.70;
+	private final double r = 0.6;
+	private final double deepIce = 1.8;
+	private final double xFallFix = 0.90;
 	
 	
 	//Input parameters
@@ -77,20 +89,22 @@ public class IceWalkerModel extends Model {
 	private double mud;
 	
 	//Calculated parameters
-	private double x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11;
-	private double oldX4, oldX5, oldX7, oldX8, oldX9, oldX10;
-	private double v4, v5, v6, v7, v8, v9, v10;
+	private double x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14;
+	private double oldX4, oldX5, oldX6, oldX7, oldX8, oldX9, oldX10, oldX12, oldX13, oldX14;
+	double phiPerson;
+	private double v4, v5, v6, v7, v8, v9, v10, v12;
 	private double Froz, Mt, Wo, phi, eta;
 	private double A, B, C, D, E, J, h;
-	private double x3Max, xTopLimit;
-	
+	private double x3Max;
+	private double y13Modifier = 0;
 	
 	public IceWalkerModel(double F, double mu, double mud){ 
 	
 		double temp1, temp2, temp3;
 		
 		t = new Time();
-		phase = 1;
+		currentPhase = 1;
+		previousPhase = 0;
 		
 		x1 = x2 = x3 = x4 = x5 = x6 = x7 = x8 = x9 = x10 = 0;
 		
@@ -108,7 +122,6 @@ public class IceWalkerModel extends Model {
 		J = E/B;
 		
 		//TODO asignar valor a XtopLimit
-		xTopLimit = 2.0;
 		h = deep - L;
 		
 		Wo = Math.sqrt(B/Mt);
@@ -120,6 +133,7 @@ public class IceWalkerModel extends Model {
 		eta = temp1*temp2*temp3;
 		
 		x3Max = eta + D;
+	
 		
 	}
 	
@@ -131,11 +145,13 @@ public class IceWalkerModel extends Model {
 	@Override
 	public void simulate() {
 		
+
+		
 		//TODO simulacion
 		double t = ((double)this.t.getTime())/1000.0;
 	
 			
-		switch(phase){
+		switch(currentPhase){
 		//Estado Inicial
 		case PHASE_1:
 			lastT = t;
@@ -143,7 +159,7 @@ public class IceWalkerModel extends Model {
 				jumpToPhase(PHASE_2);
 			}
 			else{
-				jumpToFinalPhase();
+				jumpToPhase(PHASE_11);
 			}
 			break;
 		//Hay movimiento ascendente
@@ -158,6 +174,9 @@ public class IceWalkerModel extends Model {
 		case PHASE_3:	
 			lastT = t;
 			x3 = eta*Math.sin(Wo*t + phi) + D + x2;
+			
+			System.out.println("X3: " + x3);
+			
 			if(x3Max > (h+L)){
 				if(x3 >= h+L){
 					jumpToPhase(PHASE_7);
@@ -165,15 +184,19 @@ public class IceWalkerModel extends Model {
 			}
 			else{
 				if(x3 >= x3Max){
+					//Esto es un ajuste para los graficos
+//					x3 = x3Max;
 					jumpToPhase(PHASE_4);
 				}
 			}
 			break;
 		//No consigue salir, comienza a hundirse
 		case PHASE_4:
-			x4 = h + ((1/B)*(E - E*Math.cos(Math.sqrt(B/Mt)*t) + B*x3*Math.cos(Math.sqrt(B/Mt)*x3)));
-			v4 = Math.abs(x4 - oldX4)/(t - lastT);
+			x4 = h + ((1/B)*(E - E*Math.cos(Math.sqrt(B/Mt)*t) + B*(x3-h)*Math.cos(Math.sqrt(B/Mt)*t)));
+			v4 = (x4 - oldX4)/(t - lastT);
 			lastT = t;
+			
+//			System.out.println("X4: " + x4);
 			
 			if(x4 <= h){
 				jumpToPhase(PHASE_5);
@@ -183,11 +206,29 @@ public class IceWalkerModel extends Model {
 			break;
 		//Está sumergido por completo, sigue bajando
 		case PHASE_5:
-			x5 = ((E*Math.pow(t, 2.0))/(Mt*2)) + v4*t + x4;
-			v5 = Math.abs(x5 - oldX5)/(t - lastT);
+			double vUtil = 0; 
+			double xUtil = 0;
+			
+			if(previousPhase == PHASE_4){
+				vUtil = v4;
+				xUtil = x4;
+			}
+			else if(previousPhase == PHASE_8){
+				vUtil = v8;
+				xUtil = x8;
+			}
+			else{
+				System.err.println("Pasas a fase 5 desde fase " + currentPhase);
+				System.exit(5);
+			}
+			
+			x5 = ((E*Math.pow(t, 2.0))/(Mt*2)) + vUtil*t + xUtil;
+			v5 = (x5 - oldX5)/(t - lastT);
 			lastT = t;
 			
+			
 			if(x5 <= 0){
+				x5 = 0;
 				jumpToPhase(PHASE_6);
 			}
 			
@@ -195,12 +236,16 @@ public class IceWalkerModel extends Model {
 			break;
 		//Ya ha tocado el suelo. El esquimal sigue con la incercia
 		case PHASE_6:
-			x6 = (mud*g*Math.pow(t, 2.0)/2) - v5*t + x5;
-			v6 = mud*g*t - v5;
+			x6 = (mud*g*Math.pow(t, 2.0)/2) + v5*t + x5;
+			v6 = mud*g*t + v5;
 			lastT = t;
-			
-			if(v6 <= 0){
-				jumpToFinalPhase();
+						
+			System.out.print("V:" + v6);
+			if(x6 <= xfall){
+				jumpToPhase(PHASE_13);
+			}
+			else if(v6 >= 0){
+				jumpToPhase(PHASE_11);			
 			}
 			break;
 		//Sí consigue salir de la interfaz aire agua
@@ -209,61 +254,62 @@ public class IceWalkerModel extends Model {
 			+ eta*Wo*t*Math.cos(Math.asin((L-D)/eta)) 
 			+ x3;
 
-			if(x7 > 50){
-				System.out.print("Pero qué...");
-			}
 			System.out.print("X7: " + x7);
 		
 			v7 = (x7 -oldX7)/(t - lastT); 
 			lastT = t;
 			
 			if(x7 < oldX7){
-				jumpToPhase(PHASE_8);
+				jumpToPhase(PHASE_12);
 			}
-			else if(x7 >= xTopLimit){
-				jumpToFinalPhase();
-			}
+			else if(x7 >= yTopLimit){
+				jumpToPhase(PHASE_11);			}
 
 			oldX7 = x7;
 			break;
+		case PHASE_12:
+			x12 = ((-m*g*Math.pow(t, 2.0))/(Mt*2)) + x7;
+			v12 = (x12 -oldX12)/(t - lastT);
+			lastT = t;
+			
+			if(x12 <= h+L){
+				jumpToPhase(PHASE_8);
+			}
+			break;
 		//Vuelve  a la interfaz
 		case PHASE_8:
-			double phi8 = Math.atan((-E)/(Mt*Wo*v7));
-			double eta8 = v7/(Wo*Math.cos(phi8));
+			double phi8 = Math.atan((-E)/(Mt*Wo*v12));
+			double eta8 = v12/(Wo*Math.cos(phi8));
 			
-			x8 = (eta8*Math.sin(Wo*t + phi8) + J + x7) + h;
-			v8 = Math.abs(x8 - oldX8)/(t - lastT);
+			x8 = (eta8*Math.sin(Wo*t + phi8) + J + x12) + h;
+			v8 = (x8 - oldX8)/(t - lastT);
 			lastT = t;
 			
 			if(x8 <= h){
-				jumpToPhase(PHASE_9);
+				jumpToPhase(PHASE_5);
 			}
 			
 			oldX8 = x8;
 			break;
-		//Esta sumergido por completo descendiendo
-		case PHASE_9:
-			x9 = ((E*Math.pow(t, 2.0))/(Mt*2) + v8*t + x8);
-			lastT = t;
-			v9 = Math.abs(x9 - oldX9)/(t - lastT);
-			
-			if(x9 <= 0){
-				jumpToPhase(PHASE_10);
+		case PHASE_13:
+			phiPerson = ((v6/r)*t)*4;
+			y13Modifier =  (phiPerson/(Math.PI*2.0))*xFallFix;
+			x13 = y13Modifier + x6;
+			if(phiPerson <= (-Math.PI/2.0)){
+				jumpToPhase(PHASE_14);
 			}
-
-			oldX9 = x9;
 			break;
-		//Ya ha tocado el suelo. El esquimal sigue con la incercia
-		case PHASE_10:
-			x10 = (mud*g*Math.pow(t, 2.0)/2) - v9*t + x9;
-			v10 = mud*g*t - v9;
-			lastT = t;
-			
-			if(v10 >= 0){
-				jumpToFinalPhase();
+		case PHASE_14:
+			x14 = ((-M*g*Math.pow(t, 2.0))/2.0) + v6*t + deepIce;
+			if(x14 <= h+L){
+				jumpToPhase(PHASE_11);
 			}
 			break;
 		}
+		
+//		System.out.println("Fase:" + phase);
+//		System.out.println("X:" + getX());
+		
 	}
 	
 	
@@ -274,7 +320,7 @@ public class IceWalkerModel extends Model {
 	public double getX(){
 		double x = 0;
 		
-		switch(phase){
+		switch(currentPhase){
 		case PHASE_1:
 			x = x1;
 			break;
@@ -308,6 +354,15 @@ public class IceWalkerModel extends Model {
 		case PHASE_11:
 			x = x11;
 			break;
+		case PHASE_12:
+			x = x12;
+			break;
+		case PHASE_13:
+			x = x13;
+			break;
+		case PHASE_14:
+			x = x14;
+			break;
 		}
 		
 		return x;
@@ -320,7 +375,8 @@ public class IceWalkerModel extends Model {
 
 	public void jumpToPhase(int phase) {
 		double lastX = getX();
-		this.phase = phase;
+		this.previousPhase = this.currentPhase;
+		this.currentPhase = phase;
 		lastT = t.getTime();
 		
 		switch(phase){
@@ -332,7 +388,12 @@ public class IceWalkerModel extends Model {
 			oldX4 = lastX;
 			break;
 		case PHASE_5:
+			x5 = lastX;
 			oldX5 = lastX;
+			break;
+		case PHASE_6:
+			x6 = lastX;
+			oldX6 = lastX;
 			break;
 		case PHASE_7:
 			oldX7 = lastX;
@@ -353,20 +414,27 @@ public class IceWalkerModel extends Model {
 		case PHASE_11:
 			x11 = lastX;
 			break;
+		case PHASE_12:
+			x12 = lastX;
+			oldX12 = lastX;
+			break;
+		case PHASE_13:
+			x13 = lastX;
+			oldX13 = lastX;
+			break;
+		case PHASE_14:
+			x14 = Y0Person;
+			oldX14 = Y0Person;
+			break;
 		}
+		
+		
 		t = new Time();
 	}
-	
-	/**
-	 * Jump to the final phase
-	 */
-	private void jumpToFinalPhase(){
-		x11 = getX();
-		this.phase = PHASE_11;
-	}
+
 
 	public int getPhase() {
-		return phase;
+		return currentPhase;
 	}
 
 	public Time getT() {
@@ -379,16 +447,140 @@ public class IceWalkerModel extends Model {
 	}	
 	
 	public Point2D getBoxPoint(){
-		double x = X0Box;
-		double y = Y0Box + getX()*100;
+		
+		double x, y;
+		
+		switch(currentPhase){
+		case PHASE_11:
+			//Caja arriba
+			if(previousPhase == PHASE_7){
+				x = X0Box;
+				y = Y0Box + yTopLimit*100;
+			}
+			//Caja tocando el suelo
+			else{
+				x = X0Box;
+				y = Y0Box;
+			}
+			break;
+		//Caja tocando el suelo;
+		case PHASE_6:
+		case PHASE_13:
+		case PHASE_14:
+			x = X0Box;
+			y = Y0Box;
+			break;
+		default:
+			x = X0Box;
+			y = Y0Box + getX()*100;
+			break;
+		}
 		
 		return new Point2D.Double(x,y);
 	}
 	
 	public Point2D getPersonPoint(){
-		double x = X0Person + getX()*100;
-		double y = Y0Person;
+		double x = 0;
+		double y = 0;
+		
+		switch(currentPhase){
+		case PHASE_14:
+			x = X0Person + (xfall-xFallFix/3)*100;
+			y = getX()*100;
+			break;
+		case PHASE_13:
+			x = X0Person + getX()*100;
+			y = Y0Person + y13Modifier*100;
+			break;
+		case PHASE_11:
+			if(previousPhase == PHASE_14){
+				x = X0Person + (xfall-xFallFix/2.9)*100;
+				y = (h+L)*100;
+			}
+			else{
+				x = X0Person + getX()*100;
+				y = Y0Person;
+			}
+			break;
+		default:
+			x = X0Person + getX()*100;
+			y = Y0Person;
+			break;
+		}
 		
 		return new Point2D.Double(x,y);
+	}
+	
+	public double getPhiPerson(){
+		double phi = 0;
+		
+		switch(currentPhase){
+		case PHASE_14:
+		case PHASE_13:
+			phi = -phiPerson;
+			break;
+		case PHASE_11:
+			if(previousPhase == PHASE_14){
+				phi = -phiPerson;
+			}
+			else{
+				phi = 0;
+			}
+			break;
+		default:
+			phi = 0;
+			break;
+		}
+		return phi;
+	}
+	
+	public Point2D getPulleyPoint(){
+		return new Point2D.Double(X0Pulley, Y0Pulley);
+	}
+	
+	public Point2D [] getRopeToPerson(){
+		Point2D [] ropeToPerson = new Point2D[2];
+		ropeToPerson[0] = getPulleyPoint();
+		
+		switch(currentPhase){
+		case PHASE_13:
+		case PHASE_14:
+			ropeToPerson[1] = getPulleyPoint();
+			break;
+		case PHASE_11:
+			if(previousPhase == PHASE_14){
+				ropeToPerson[1] = getPulleyPoint();
+				break;
+			}
+			ropeToPerson[1] = getPersonPoint();
+			ropeToPerson[1].setLocation(ropeToPerson[1].getX(), Y0Pulley);
+			break;
+		default:
+			ropeToPerson[1] = getPersonPoint();
+			ropeToPerson[1].setLocation(ropeToPerson[1].getX(), Y0Pulley);
+			break;
+		}
+				
+		return ropeToPerson;
+	}
+	
+	public Point2D [] getRopeToBox(){
+		Point2D [] ropeToBox = new Point2D[2];
+		ropeToBox[0] = getPulleyPoint();
+		ropeToBox[1] = getBoxPoint();
+		
+		return ropeToBox;
+		
+	}
+	
+	public boolean manInMovement(){
+		switch(currentPhase){
+		case PHASE_13:
+		case PHASE_14:
+		case PHASE_11:
+			return false;
+		default:
+			return true;
+		}
 	}
 }
