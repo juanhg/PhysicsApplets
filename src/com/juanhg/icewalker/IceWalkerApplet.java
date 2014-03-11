@@ -43,6 +43,8 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -63,12 +65,13 @@ import org.jfree.chart.annotations.XYAnnotation;
 import com.juanhg.util.ImageProcessing;
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
+import javax.swing.JTextField;
 
 public class IceWalkerApplet extends JApplet implements Runnable {
 
 
 	private static final long serialVersionUID = -3017107307819023599L;
-
+	private float energySize = 33;
 
 	//Control variables
 	double sleepTime = 50;	
@@ -112,13 +115,19 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 	final String surface = "surface.png";
 	final String ground = "ground.png";
 	final String pulley = "pulley.png";
+	final String banana = "banana.png";
+	final String burger = "burger.png";
+	final String cake = "cake.png";
+	final String cookie = "cookie.png";
+	final String carrot = "carrot.png";
+	final String base = "base.png";
 	private final String background = "background.jpg";
 
 	//Images
 	BufferedImage person0Image, person1Image, person2Image, person3Image, person4Image, person5Image;
 	BufferedImage rotatedPersonImage;
-	BufferedImage boxImage, pulleyImage;
-	BufferedImage waterImage, surfaceImage, groundImage, backgroundImage;
+	BufferedImage boxImage, pulleyImage, carrotImage, baseImage;
+	BufferedImage waterImage, surfaceImage, groundImage, backgroundImage, bananaImage, cakeImage, burgerImage, cookieImage;
 
 	//Annotations
 	XYAnnotation personAnnotation;
@@ -133,10 +142,13 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 	private JSlider sliderStrength, sliderStaticFriction, sliderDynamicFriction; 
 
 	//Buttons
-	JButton btnLaunchSimulation, btnPauseContinue;
+	JButton btnLaunchSimulation, btnBanana, btnBurger, btnCookie;
+	JButton btnCarrot;
 	private JPanel panel;
 	private JLabel label;
 	private JPanel panel_1;
+	private JLabel lblCalg;
+	private JLabel lblCalg_1;
 
 
 	public IceWalkerApplet() {}
@@ -219,7 +231,6 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 
 			buttonsOn = false;
 			btnLaunchSimulation.setText("Finalizar");
-			btnPauseContinue.setText("Pausar");
 
 			//Obtain values from interface
 			this.readInputs();
@@ -232,32 +243,90 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 			sliderStrength.setEnabled(buttonsOn);
 			sliderDynamicFriction.setEnabled(buttonsOn);
 			sliderStaticFriction.setEnabled(buttonsOn);
-
+			
+			
+			
 			model.getT().start();
 			flujo.start();
 		}
 	}
 
-	void btnPauseContinueEvent(ActionEvent event){
-		if(flujo != null && flujo.isAlive()) {
-			btnPauseContinue.setText("Continuar");
-			end = true;
-			while(flujo.isAlive()) {}
-			model.getT().pause();
+	void btnBananaEvent(){
+		end = true;
+		while(flujo.isAlive()) {}
+		readInputs();
+		model.reset();
+	    flujo = new Thread();
+	    flujo = new Thread(this);
+	    
+		btnBanana.setEnabled(false);
+		btnBurger.setEnabled(false);
+		btnCarrot.setEnabled(false);
+		btnCookie.setEnabled(false);
+		
+	    model.eatBanana();
+		paintEnergy();
 
-		}
-		else {
-
-			end = false;
-			btnPauseContinue.setText("Pausar");
-			flujo = new Thread(this);
-			model.getT().start();
-			flujo.start();
-		}
+	    flujo.start();
 	}
 
+	void btnBurgerEvent(){
+		end = true;
+		while(flujo.isAlive()) {}
+		readInputs();
+		model.reset();
+	    flujo = new Thread();
+	    flujo = new Thread(this);
+	    
+		btnBanana.setEnabled(false);
+		btnBurger.setEnabled(false);
+		btnCarrot.setEnabled(false);
+		btnCookie.setEnabled(false);
+		
+	    model.eatBurger();
+		paintEnergy();
 
+	    flujo.start();
+	}
+	
+	void btnCookieEvent(){
+		end = true;
+		while(flujo.isAlive()) {}
+		readInputs();
+		model.reset();
+	    flujo = new Thread();
+	    flujo = new Thread(this);
+	    
+		btnBanana.setEnabled(false);
+		btnBurger.setEnabled(false);
+		btnCarrot.setEnabled(false);
+		btnCookie.setEnabled(false);
+		
+	    model.eatCookie();
+		paintEnergy();
 
+	    flujo.start();
+	}
+	
+	void btnCarrotEvent(){
+		end = true;
+		while(flujo.isAlive()) {}
+		readInputs();
+		model.reset();
+	    flujo = new Thread();
+	    flujo = new Thread(this);
+	    
+		btnBanana.setEnabled(false);
+		btnBurger.setEnabled(false);
+		btnCarrot.setEnabled(false);
+		btnCookie.setEnabled(false);
+		
+	    model.eatCarrot();
+		paintEnergy();
+
+	    flujo.start();
+	}
+	
 	@Override
 	public void run() {
 
@@ -274,7 +343,8 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 			personAnnotation = chart.setImageAtPoint(rotatedPersonImage, model.getPersonPoint());
 
 			chart.replacePlot(1, model.getRopeToPerson(), "", Color.darkGray, 3f,true);
-			chart.replacePlot(2, model.getRopeToBox(), "", Color.darkGray, 3f,true);			
+			chart.replacePlot(2, model.getRopeToBox(), "", Color.darkGray, 3f,true);
+			paintEnergy();
 			panelSimulation.actualizaGrafica(chart);
 
 			repaint();
@@ -287,6 +357,13 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 
 			String phase = String.valueOf((model.getPhase()));
 			lblPhaseValue.setText(phase);
+			
+			if(model.readyToEat()){
+				btnBanana.setEnabled(true);
+				btnBurger.setEnabled(true);
+				btnCarrot.setEnabled(true);
+				btnCookie.setEnabled(true);
+			}
 
 			try {
 				Thread.sleep((long)sleepTime);
@@ -328,11 +405,13 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 
 		chart.agregarGrafica(model.getRopeToPerson(), "", Color.darkGray, 3f,true);
 		chart.agregarGrafica(model.getRopeToBox(), "", Color.darkGray, 3f,true);
+		paintEnergy();
 
 		//Load Images
 		backgroundImage = loadImage("background.png");
 		boxImage = loadImage(box);
 		pulleyImage = loadImage(pulley);
+		baseImage = loadImage(base);
 		person0Image = loadImage(person0);
 		person1Image = loadImage(person1);
 		person2Image = loadImage(person2);
@@ -351,14 +430,21 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 		boxAnnotation = chart.setImageAtPoint(boxImage, model.getBoxPoint());
 		chart.deleteImage(personAnnotation);
 		personAnnotation = chart.setImageAtPoint(getPersonImage(), model.getPersonPoint());
+		chart.setImageAtPoint(baseImage, model.getBase());
 		chart.setImageAtPoint(pulleyImage, model.getPulleyPoint());
+		
+		
+		btnBanana.setEnabled(false);
+		btnBurger.setEnabled(false);
+		btnCarrot.setEnabled(false);
+		btnCookie.setEnabled(false);
 
 		//Actualize panels
 		panelSimulation.actualizaGrafica(chart);
 	}
 
 	/**
-	 * Load a image in the especified path
+	 * Load a image in the specified path
 	 * @param fileName Absolute or relative path to the image
 	 * @return BufferedImage that contains the image
 	 */
@@ -422,6 +508,32 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 		return person;
 	}
 
+	public void paintEnergy(){
+		if(model.remainEnergy()){
+			energySize = 33;
+		}
+		else{
+			energySize = 0;
+		}
+		
+		Color color;
+		double energy = model.getEnergyValue();
+		if(energy > 0 && energy <= 200){
+			color = Color.red;
+		}
+		else if(energy > 200 && energy <= 400){
+			color = Color.orange;
+		}
+		else if(energy > 400 && energy <= 600){
+			color = Color.yellow;
+		}
+		else{
+			color = Color.green;
+		}
+		
+		chart.replacePlot(3, model.getEnergy(), "", color, energySize,true);
+	}
+	
 	private void autogeneratedCode(){
 		JPanel panel_control = new JPanel();
 		panel_control.setBorder(new CompoundBorder(new EtchedBorder(EtchedBorder.RAISED, null, null), new BevelBorder(BevelBorder.RAISED, null, null, null, null)));
@@ -478,33 +590,34 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 		panel_1.setBorder(new LineBorder(new Color(0, 0, 0)));
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);
 		gl_panel_control.setHorizontalGroup(
-				gl_panel_control.createParallelGroup(Alignment.LEADING)
+			gl_panel_control.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel_control.createSequentialGroup()
-						.addContainerGap()
-						.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
-								.addGroup(gl_panel_control.createSequentialGroup()
-										.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
-												.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 396, GroupLayout.PREFERRED_SIZE)
-												.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 396, Short.MAX_VALUE)
-												.addComponent(panelTiempo, GroupLayout.DEFAULT_SIZE, 396, Short.MAX_VALUE))
-												.addGap(18))
-												.addGroup(gl_panel_control.createSequentialGroup()
-														.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, 397, GroupLayout.PREFERRED_SIZE)
-														.addContainerGap(17, Short.MAX_VALUE))))
-				);
+					.addContainerGap()
+					.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panel_control.createSequentialGroup()
+							.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING, false)
+								.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(panelInputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+							.addContainerGap())
+						.addGroup(Alignment.TRAILING, gl_panel_control.createSequentialGroup()
+							.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
+								.addComponent(panel_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE)
+								.addComponent(panelTiempo, GroupLayout.DEFAULT_SIZE, 404, Short.MAX_VALUE))
+							.addContainerGap())))
+		);
 		gl_panel_control.setVerticalGroup(
-				gl_panel_control.createParallelGroup(Alignment.LEADING)
+			gl_panel_control.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel_control.createSequentialGroup()
-						.addContainerGap()
-						.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 202, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 103, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(panelTiempo, GroupLayout.PREFERRED_SIZE, 210, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED, 15, Short.MAX_VALUE)
-						.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addContainerGap())
-				);
+					.addContainerGap()
+					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 141, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 103, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panelTiempo, GroupLayout.PREFERRED_SIZE, 271, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED, 15, Short.MAX_VALUE)
+					.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap())
+		);
 
 		JLabel lblNewLabel = new JLabel("GNU GENERAL PUBLIC LICENSE");
 		panel_1.add(lblNewLabel);
@@ -517,40 +630,109 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 			}
 		});
 
-		btnPauseContinue = new JButton("Pausar");
-		btnPauseContinue.setFont(new Font("Tahoma", Font.PLAIN, 16));
-		btnPauseContinue.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent event) {
-				btnPauseContinueEvent(event);
-			}
-		});
-
 		panel = new JPanel();
 		panel.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
 
 		label = new JLabel("Datos de la Simulaci\u00F3n");
 		label.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panel.add(label);
+		
+		btnBanana = new JButton("");
+		btnBanana.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				btnBananaEvent();
+			}
+		});
+		bananaImage = loadImage(banana);
+		btnBanana.setIcon(new ImageIcon(bananaImage));
+		
+		btnBurger = new JButton("");
+		btnBurger.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				btnBurgerEvent();
+			}
+		});
+		burgerImage = loadImage(burger);
+		btnBurger.setIcon(new ImageIcon(burgerImage));
+		
+		btnCookie = new JButton("");
+		btnCookie.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				btnCookieEvent();
+			}
+		});
+		cookieImage = loadImage(cookie);
+		btnCookie.setIcon(new ImageIcon(cookieImage));
+		
+		btnCarrot = new JButton("");
+		carrotImage = loadImage(carrot);
+		btnCarrot.setIcon(new ImageIcon(carrotImage));
+		btnCarrot.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				btnCarrotEvent();
+			}
+		});
+		
+		JLabel lblNewLabel_1 = new JLabel("30 cal/100g");
+		
+		JLabel lblCalg_2 = new JLabel("734 cal/100g");
+		
+		lblCalg = new JLabel("90 cal/100g");
+		
+		lblCalg_1 = new JLabel("433 cal/100g");
+		
 		GroupLayout gl_panelTiempo = new GroupLayout(panelTiempo);
 		gl_panelTiempo.setHorizontalGroup(
-				gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+			gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+				.addComponent(panel, GroupLayout.DEFAULT_SIZE, 402, Short.MAX_VALUE)
 				.addGroup(gl_panelTiempo.createSequentialGroup()
-						.addContainerGap()
-						.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 176, GroupLayout.PREFERRED_SIZE)
-						.addGap(21)
-						.addComponent(btnPauseContinue, GroupLayout.PREFERRED_SIZE, 168, GroupLayout.PREFERRED_SIZE)
-						.addContainerGap(19, Short.MAX_VALUE))
-						.addComponent(panel, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 394, Short.MAX_VALUE)
-				);
+					.addGap(17)
+					.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING, false)
+						.addComponent(btnLaunchSimulation, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+						.addGroup(gl_panelTiempo.createSequentialGroup()
+							.addGroup(gl_panelTiempo.createParallelGroup(Alignment.TRAILING)
+								.addComponent(btnCarrot, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblNewLabel_1, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE))
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addGroup(gl_panelTiempo.createParallelGroup(Alignment.TRAILING)
+								.addComponent(btnBanana)
+								.addComponent(lblCalg, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE))
+							.addGap(18)
+							.addGroup(gl_panelTiempo.createParallelGroup(Alignment.TRAILING)
+								.addComponent(btnCookie, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblCalg_1, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE))
+							.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_panelTiempo.createSequentialGroup()
+									.addGap(6)
+									.addComponent(btnBurger, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE))
+								.addGroup(gl_panelTiempo.createSequentialGroup()
+									.addGap(18)
+									.addComponent(lblCalg_2, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE)))))
+					.addContainerGap(24, Short.MAX_VALUE))
+		);
 		gl_panelTiempo.setVerticalGroup(
-				gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+			gl_panelTiempo.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelTiempo.createSequentialGroup()
-						.addComponent(panel, GroupLayout.PREFERRED_SIZE, 31, GroupLayout.PREFERRED_SIZE)
-						.addGap(98)
-						.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING)
-								.addComponent(btnPauseContinue, GroupLayout.PREFERRED_SIZE, 62, GroupLayout.PREFERRED_SIZE)
-								.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 62, GroupLayout.PREFERRED_SIZE)))
-				);
+					.addComponent(panel, GroupLayout.PREFERRED_SIZE, 31, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelTiempo.createSequentialGroup()
+							.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING)
+								.addComponent(btnCarrot, GroupLayout.PREFERRED_SIZE, 69, GroupLayout.PREFERRED_SIZE)
+								.addComponent(btnCookie, GroupLayout.PREFERRED_SIZE, 69, GroupLayout.PREFERRED_SIZE)
+								.addComponent(btnBurger, GroupLayout.PREFERRED_SIZE, 69, GroupLayout.PREFERRED_SIZE))
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(gl_panelTiempo.createParallelGroup(Alignment.LEADING, false)
+								.addComponent(lblNewLabel_1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addGroup(gl_panelTiempo.createParallelGroup(Alignment.BASELINE)
+									.addComponent(lblCalg_2, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+									.addComponent(lblCalg_1, GroupLayout.DEFAULT_SIZE, 27, Short.MAX_VALUE))
+								.addComponent(lblCalg, GroupLayout.DEFAULT_SIZE, 27, Short.MAX_VALUE)))
+						.addComponent(btnBanana, GroupLayout.PREFERRED_SIZE, 69, GroupLayout.PREFERRED_SIZE))
+					.addGap(30)
+					.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 62, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(33, Short.MAX_VALUE))
+		);
 		panelTiempo.setLayout(gl_panelTiempo);
 
 		JLabel LabelStrength = new JLabel("Fuerza");

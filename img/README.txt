@@ -8,3 +8,4 @@ ice: http://www.iconarchive.com/show/weather-icons-by-icons-land/Ice-icon.html
 diamond: http://www.iconarchive.com/show/casino-icons-by-designcontest/Diamond-icon.html
 banana: http://www.iconarchive.com/show/fruits-icons-by-fasticon/banana-icon.html
 burger: http://www.iconarchive.com/show/food-icons-by-aha-soft/burger-icon.html
+stone: http://www.iconarchive.com/show/harry-potter-icons-by-anton-gerasimenko/Philosophers-Stone-2-icon.html

@@ -57,12 +57,18 @@ public class IceWalkerModel extends Model {
 	static final int PHASE_13 = 13;
 	static final int PHASE_14 = 14;
 	
-	final double X0Box = 25;
+	final double X0Box = 65;
 	final double Y0Box = 13;
 	final double X0Person = 160;
 	final double Y0Person = 223;
-	final double X0Pulley = 25;
-	final double Y0Pulley = 246;
+	final double X0Pulley = 65;
+	final double Y0Pulley = 230;
+	final double X0Energy = 33.7;
+	final double Y0Energy = 313.0;
+	final double X0Base = 83;
+	final double Y0Base = 191;
+	final double XMaxEnergy = 370;
+	final double maxEnergy = 800;
 	
 	private int currentPhase;
 	private int previousPhase;
@@ -81,6 +87,7 @@ public class IceWalkerModel extends Model {
 	private final double r = 0.6;
 	private final double deepIce = 1.8;
 	private final double xFallFix = 0.90;
+	double resetX = 0;
 	
 	
 	//Input parameters
@@ -95,6 +102,8 @@ public class IceWalkerModel extends Model {
 	private double A, B, C, D, E, J, h;
 	private double x3Max;
 	private double y13Modifier = 0;
+	private double Eo;
+	private double Et = 0;
 	
 	public IceWalkerModel(double F, double mu, double mud){ 
 	
@@ -118,8 +127,7 @@ public class IceWalkerModel extends Model {
 		D = A/B;
 		E = this.mud*M*g + Math.pow(L, 3)*Ro*g - m*g;
 		J = E/B;
-		
-		//TODO asignar valor a XtopLimit
+	
 		h = deep - L;
 		
 		Wo = Math.sqrt(B/Mt);
@@ -131,11 +139,14 @@ public class IceWalkerModel extends Model {
 		eta = temp1*temp2*temp3;
 		
 		x3Max = eta + D;
-	
-		
+		Et = Eo = 0;
 	}
 	
-	
+	public void reset(){
+		jumpToPhase(PHASE_1);
+		resetX = x;
+		x = 0;
+	}
 	
 	/**
 	 * Actualizes the simulation according the actual time
@@ -163,7 +174,15 @@ public class IceWalkerModel extends Model {
 		case PHASE_2:
 			lastT = t;
 			x = (A*Math.pow(t, 2))/(Mt*2);
-			if(x >= h){
+			v = (x - lastX)/(t - lastT);
+			Et = Eo - (F*x);
+			
+			if(Et <= 0){
+				Et = 0;
+				v = 0;
+				jumpToPhase(PHASE_5);
+			}
+			else if(x >= h){
 				jumpToPhase(PHASE_3);
 			}
 			break;
@@ -171,8 +190,14 @@ public class IceWalkerModel extends Model {
 		case PHASE_3:	
 			lastT = t;
 			x = eta*Math.sin(Wo*t + phi) + D + lastPhaseX;
-					
-			if(x3Max > (h+L)){
+			v = (x - lastX)/(t - lastT);
+			Et = Eo - (F*x);
+			if(Et <= 0){
+				Et = 0;
+				v = 0;
+				jumpToPhase(PHASE_4);
+			}		
+			else if(x3Max > (h+L)){
 				if(x >= h+L){
 					jumpToPhase(PHASE_7);
 				}
@@ -216,7 +241,7 @@ public class IceWalkerModel extends Model {
 			v = mud*g*t + lastPhaseV;
 			lastT = t;
 						
-			if(x <= xfall){
+			if(x <= (xfall - resetX)){
 				jumpToPhase(PHASE_13);
 			}
 			else if(v >= 0){
@@ -232,7 +257,13 @@ public class IceWalkerModel extends Model {
 			v = (x - lastX)/(t - lastT); 
 			lastT = t;
 			
-			if(x < lastX){
+			Et = Eo - (F*x);
+			if(Et <= 0){
+				Et = 0;
+				v = 0;
+				jumpToPhase(PHASE_5);
+			}
+			else if(x < lastX){
 				jumpToPhase(PHASE_12);
 			}
 			else if(x >= yTopLimit){
@@ -264,23 +295,20 @@ public class IceWalkerModel extends Model {
 			phiPerson = ((lastPhaseV/r)*t)*4;
 			y13Modifier =  (phiPerson/(Math.PI*2.0))*xFallFix;
 			x = y13Modifier + lastPhaseX;
+			v = (x - lastX)/(t - lastT);
 			if(phiPerson <= (-Math.PI/2.0)){
 				jumpToPhase(PHASE_14);
 			}
 			break;
 		case PHASE_14:
 			x = ((-M*g*Math.pow(t, 2.0))/2.0) + lastPhaseV*t + deepIce;
+			v = (x - lastX)/(t - lastT);
 			if(x <= h+L){
 				jumpToPhase(PHASE_11);
 			}
 			break;
 		}
-		
 		lastX = x;
-		
-//		System.out.println("Fase:" + phase);
-//		System.out.println("X:" + getX());
-		
 	}
 	
 	
@@ -358,7 +386,7 @@ public class IceWalkerModel extends Model {
 		
 		switch(currentPhase){
 		case PHASE_14:
-			personX = X0Person + (xfall-xFallFix/3)*100;
+			personX = X0Person + ((xfall-resetX)-xFallFix/3)*100;
 			personY = x*100;
 			break;
 		case PHASE_13:
@@ -367,7 +395,7 @@ public class IceWalkerModel extends Model {
 			break;
 		case PHASE_11:
 			if(previousPhase == PHASE_14){
-				personX = X0Person + (xfall-xFallFix/2.9)*100;
+				personX = X0Person + ((xfall-resetX)-xFallFix/2.9)*100;
 				personY = (h+L)*100;
 			}
 			else{
@@ -381,6 +409,7 @@ public class IceWalkerModel extends Model {
 			break;
 		}
 		
+		personX += resetX*100;
 		return new Point2D.Double(personX,personY);
 	}
 	
@@ -446,6 +475,29 @@ public class IceWalkerModel extends Model {
 		
 	}
 	
+	public Point2D getBase(){
+		return new Point2D.Double(X0Base, Y0Base);
+	}
+	
+	public boolean remainEnergy(){
+		if(Et > 0){
+			return true;
+		}
+		return false;
+	}
+	
+	public Point2D [] getEnergy(){
+		Point2D [] energy = new Point2D[2];
+		double aux;
+		
+		aux = Et*((XMaxEnergy-X0Energy)/maxEnergy) + X0Energy;
+		
+		energy[0] = new Point2D.Double(X0Energy, Y0Energy);
+		energy[1] = new Point2D.Double (aux, Y0Energy);
+		
+		return energy;
+	}
+	
 	public boolean manInMovement(){
 		switch(currentPhase){
 		case PHASE_13:
@@ -455,5 +507,57 @@ public class IceWalkerModel extends Model {
 		default:
 			return true;
 		}
+	}
+	
+	public void eatBanana(){
+		Et += ((maxEnergy*0.5) - 35);
+		if(Et > maxEnergy){
+			Et = maxEnergy;
+		}
+		Eo = Et;
+	}
+	
+	public void eatBurger(){
+		Et += maxEnergy;
+		if(Et > maxEnergy){
+			Et = maxEnergy;
+		}
+		Eo = Et;
+	}
+	
+	public void eatCookie(){
+		Et += ((maxEnergy*0.75)-15);
+		if(Et > maxEnergy){
+			Et = maxEnergy;
+		}
+		Eo = Et;
+	}
+	
+	public void eatCarrot(){
+		Et += ((maxEnergy*0.25) - 35);
+		if(Et > maxEnergy){
+			Et = maxEnergy;
+		}
+		Eo = Et;
+	}
+	
+	public boolean readyToEat(){
+		switch(currentPhase){
+		case PHASE_11:
+			switch(previousPhase){
+			case PHASE_6:
+				return true;
+			}
+			break;
+		}
+		return false;
+	}
+	
+	public double getEnergyValue(){
+		return Et;
+	}
+	
+	public double getV(){
+		return v;
 	}
 }
