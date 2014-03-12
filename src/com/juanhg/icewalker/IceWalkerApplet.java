@@ -73,6 +73,7 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 	private static final long serialVersionUID = -3017107307819023599L;
 	private float energySize = 33;
 
+	
 	//Control variables
 	double sleepTime = 50;	
 	boolean end = false;
@@ -134,7 +135,7 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 	XYAnnotation boxAnnotation;
 
 	//Labels
-	private JLabel lblPhaseValue;  
+	private JLabel lblVValue;  
 	private JLabel lblStaticFrictionValue, lblDynamicFrictionValue, lblStregthValue;
 	private JLabel lblPhase;
 
@@ -355,9 +356,14 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 
 			//End Step of simulation
 
-			String phase = String.valueOf((model.getPhase()));
-			lblPhaseValue.setText(phase);
-			
+			String v = String.valueOf((model.getV()));
+			if(v.length() > 8){
+				lblVValue.setText(v.substring(0,8));
+			}
+			else{
+				lblVValue.setText(v);
+			}
+	
 			if(model.readyToEat()){
 				btnBanana.setEnabled(true);
 				btnBurger.setEnabled(true);
@@ -557,12 +563,12 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 		labelOutputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panelTitleOutputs.add(labelOutputData);
 
-		lblPhase = new JLabel("Fase Actual:");
+		lblPhase = new JLabel("Velocidad:");
 		lblPhase.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblPhaseValue = new JLabel();
-		lblPhaseValue.setText("0");
-		lblPhaseValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblVValue = new JLabel();
+		lblVValue.setText("0");
+		lblVValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
 				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
@@ -571,7 +577,7 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 						.addContainerGap()
 						.addComponent(lblPhase, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
 						.addGap(26)
-						.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
 						.addContainerGap(112, Short.MAX_VALUE))
 				);
 		gl_panelOutputs.setVerticalGroup(
@@ -581,7 +587,7 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 						.addPreferredGap(ComponentPlacement.UNRELATED)
 						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 								.addComponent(lblPhase)
-								.addComponent(lblPhaseValue))
+								.addComponent(lblVValue))
 								.addGap(42))
 				);
 		panelOutputs.setLayout(gl_panelOutputs);

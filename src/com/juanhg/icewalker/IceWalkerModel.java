@@ -163,7 +163,7 @@ public class IceWalkerModel extends Model {
 		//Estado Inicial
 		case PHASE_1:
 			lastT = t;
-			if(F < Froz && A > 0){
+			if(F < Froz && A > 0 && Eo > 0){
 				jumpToPhase(PHASE_2);
 			}
 			else{
@@ -172,10 +172,11 @@ public class IceWalkerModel extends Model {
 			break;
 		//Hay movimiento ascendente
 		case PHASE_2:
-			lastT = t;
+			
 			x = (A*Math.pow(t, 2))/(Mt*2);
 			v = (x - lastX)/(t - lastT);
 			Et = Eo - (F*x);
+			lastT = t;
 			
 			if(Et <= 0){
 				Et = 0;
@@ -188,9 +189,9 @@ public class IceWalkerModel extends Model {
 			break;
 		//Interfaz agua-aire	
 		case PHASE_3:	
-			lastT = t;
 			x = eta*Math.sin(Wo*t + phi) + D + lastPhaseX;
 			v = (x - lastX)/(t - lastT);
+			lastT = t;
 			Et = Eo - (F*x);
 			if(Et <= 0){
 				Et = 0;
@@ -308,6 +309,9 @@ public class IceWalkerModel extends Model {
 			}
 			break;
 		}
+		if(v < 0){
+			System.out.println();
+		}
 		lastX = x;
 	}
 	
@@ -328,7 +332,7 @@ public class IceWalkerModel extends Model {
 		
 		this.previousPhase = this.currentPhase;
 		this.currentPhase = phase;
-		lastT = t.getTime();
+		lastT = 0;
 	
 		t = new Time();
 	}
@@ -545,6 +549,7 @@ public class IceWalkerModel extends Model {
 		switch(currentPhase){
 		case PHASE_11:
 			switch(previousPhase){
+			case PHASE_1:
 			case PHASE_6:
 				return true;
 			}
@@ -558,6 +563,13 @@ public class IceWalkerModel extends Model {
 	}
 	
 	public double getV(){
-		return v;
+		switch(currentPhase){
+		case PHASE_11:
+		case PHASE_13:
+		case PHASE_14:
+			return 0;
+		default:
+			return v;
+		}
 	}
 }
