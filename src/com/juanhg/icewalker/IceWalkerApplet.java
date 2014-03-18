@@ -136,7 +136,7 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 
 	//Labels
 	private JLabel lblVValue;  
-	private JLabel lblStaticFrictionValue, lblDynamicFrictionValue, lblStregthValue;
+	private JLabel lblStaticFrictionValue, lblDynamicFrictionValue, lblStregthValue, lblPositionValue;
 	private JLabel lblPhase;
 
 	//Sliders
@@ -364,6 +364,14 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 				lblVValue.setText(v);
 			}
 	
+			String x = String.valueOf(model.getPersonX());
+			if(x.length() > 8){
+				lblPositionValue.setText(x.substring(0,8));
+			}
+			else{
+				lblPositionValue.setText(x);
+			}
+			
 			if(model.readyToEat()){
 				btnBanana.setEnabled(true);
 				btnBurger.setEnabled(true);
@@ -569,27 +577,44 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 		lblVValue = new JLabel();
 		lblVValue.setText("0");
 		lblVValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		JLabel lblPosicion = new JLabel("Posici\u00F3n:");
+		lblPosicion.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblPositionValue = new JLabel();
+		lblPositionValue.setText("0");
+		lblPositionValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
-				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 394, Short.MAX_VALUE)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-						.addContainerGap()
-						.addComponent(lblPhase, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addGap(26)
-						.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
-						.addContainerGap(112, Short.MAX_VALUE))
-				);
-		gl_panelOutputs.setVerticalGroup(
-				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+					.addContainerGap()
+					.addComponent(lblPhase, GroupLayout.DEFAULT_SIZE, 81, Short.MAX_VALUE)
+					.addGap(26)
+					.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(130, Short.MAX_VALUE))
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-						.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.UNRELATED)
-						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-								.addComponent(lblPhase)
-								.addComponent(lblVValue))
-								.addGap(42))
-				);
+					.addContainerGap()
+					.addComponent(lblPosicion, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
+					.addGap(26)
+					.addComponent(lblPositionValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(130, Short.MAX_VALUE))
+		);
+		gl_panelOutputs.setVerticalGroup(
+			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_panelOutputs.createSequentialGroup()
+					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+						.addComponent(lblPhase)
+						.addComponent(lblVValue))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(lblPosicion, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblPositionValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+					.addGap(63))
+		);
 		panelOutputs.setLayout(gl_panelOutputs);
 
 		panel_1 = new JPanel();

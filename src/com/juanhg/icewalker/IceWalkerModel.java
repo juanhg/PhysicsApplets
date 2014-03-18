@@ -143,8 +143,8 @@ public class IceWalkerModel extends Model {
 	}
 	
 	public void reset(){
-		jumpToPhase(PHASE_1);
 		resetX = x;
+		jumpToPhase(PHASE_1);
 		x = 0;
 	}
 	
@@ -259,6 +259,7 @@ public class IceWalkerModel extends Model {
 			lastT = t;
 			
 			Et = Eo - (F*x);
+			
 			if(Et <= 0){
 				Et = 0;
 				v = 0;
@@ -417,6 +418,33 @@ public class IceWalkerModel extends Model {
 		return new Point2D.Double(personX,personY);
 	}
 	
+	public double getPersonX(){
+		double personX = 0;
+		
+		switch(currentPhase){
+		case PHASE_14:
+			personX = ((xfall-resetX)-xFallFix/3)*100;
+			break;
+		case PHASE_13:
+			personX = x*100;
+			break;
+		case PHASE_11:
+			if(previousPhase == PHASE_14){
+				personX = ((xfall-resetX)-xFallFix/2.9)*100;
+			}
+			else{
+				personX = x*100;
+			}
+			break;
+		default:
+			personX = x*100;
+			break;
+		}
+		
+		personX += resetX*100;
+		return personX;
+	}
+	
 	public double getPhiPerson(){
 		double phi = 0;
 		
@@ -504,6 +532,7 @@ public class IceWalkerModel extends Model {
 	
 	public boolean manInMovement(){
 		switch(currentPhase){
+		case PHASE_1:
 		case PHASE_13:
 		case PHASE_14:
 		case PHASE_11:
