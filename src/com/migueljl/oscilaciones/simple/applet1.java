@@ -40,6 +40,8 @@ import com.raccoon.easyjchart.*;
  */
 
 public class applet1 extends javax.swing.JApplet implements Runnable {
+	public applet1() {
+	}
 
     /**
      * Hebra que ejecuta la simulación.
