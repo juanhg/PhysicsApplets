@@ -33,7 +33,6 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -42,6 +41,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
+import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -57,26 +57,31 @@ import javax.swing.border.MatteBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.jfree.chart.annotations.XYAnnotation;
+import sun.org.mozilla.javascript.internal.regexp.SubString;
 
+import com.juanhg.util.Time;
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
-
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-import java.awt.GridLayout;
-import java.awt.FlowLayout;
-import java.awt.BorderLayout;
 
 public class cicloCApplet extends JApplet implements Runnable {
 
 
 	private static final long serialVersionUID = -3017107307819023599L;
+	private final String hot = "hot.png";
+	private final String cold = "cold.png";
+	private final String bulbOn = "bulbOn.png";
+	private final String bulbOff = "bulbOff.png";
+	private final String LEDOn = "LEDOn.png";
+	private final String LEDOff = "LEDOff.png";
 	
+	private final int LED_TIME = 18000;
+	private final int BULB_TIME = 3000;
+
 	//Control variables
 	double sleepTime = 5;	
 	boolean end = false;
+	
+	Time tBulb, tLED;
 
 	//Inputs
 	double T1, T2, Vmin, Vmax, N;
@@ -88,11 +93,11 @@ public class cicloCApplet extends JApplet implements Runnable {
 	private cicloCModel model;
 	
 	//Charts
-	private Grafica chartPV, chartUV, chartTV, chartUT, chartST, chartPT;
+	private Grafica chartPV, chartUV, chartTV, chartUT, chartST, chartPT, chartPiston;
 	
 	//Panels
 	private JPanel panel_1;
-	private JPanelGrafica panelPV, panelUV, panelTV, panelST, panelUT, panelPT;
+	private JPanelGrafica panelPV, panelUV, panelTV, panelST, panelUT, panelPT, panelPiston;
 
 	int supXLimit = 8;
 	int infXLimit = 2;
@@ -102,23 +107,24 @@ public class cicloCApplet extends JApplet implements Runnable {
 	Point2D VLimits, PLimits, ULimits, TLimits, SLimits;
 	
 	double modif = 0;
+	boolean isHot = true;
 
 
 	//Images
-
+	BufferedImage hotImage, coldImage, bulbOnImage, bulbOffImage, LEDOnImage, LEDOffImage;
 
 	//Annotations
 
 	//Labels
-	private JLabel lblVValue;  
-	private JLabel lblT2Value, lblVminValue, lblT1Value, lblPositionValue, lblVmaxValue, lblNValue;
-	private JLabel lblPhase;
+	private JLabel lblTrabajoCValue;  
+	private JLabel lblT2Value, lblVminValue, lblT1Value, lblTrabajoValue, lblVmaxValue, lblNValue;
+	private JLabel lblPhase, lblEValue, lblE, lblBulb, lblLED ,lblLEDValue, lblBulbValue;
 
 	//Sliders
 	private JSlider sliderT1, sliderT2, sliderVMin, sliderVMax, sliderN; 
 
 	//Buttons
-	JButton btnLaunchSimulation;
+	JButton btnLaunchSimulation, btnHot, btnCold;
 
 
 	public cicloCApplet() {}
@@ -150,29 +156,50 @@ public class cicloCApplet extends JApplet implements Runnable {
 
 
 
-	void sliderStrenghtEvent(){
-
+	private void sliderT1Event(){
+		//350 - 450
 		if(sliderT1.getValueIsAdjusting()){
 			lblT1Value.setText(Integer.toString(sliderT1.getValue()));
 		}
 	}
-	void sliderDynamicFrictionEvent(){
-		double dynamicF;
-		if(sliderVMin.getValueIsAdjusting()){
-			dynamicF = (double) sliderVMin.getValue();
-//			lblVminValue.setText(Double.toString(dynamicF/100.0));
-		}
-	}
-
-	void sliderStaticFrictionEvent(){
-
+	
+	private void sliderT2Event(){
+		//270-330
 		if(sliderT2.getValueIsAdjusting()){
 			double staticF;
 			staticF = (double) sliderT2.getValue();
-//			lblT2Value.setText(Double.toString(staticF/100.0));
+			lblT2Value.setText("" + staticF); 
+		}
+	}
+	
+	private void sliderVminEvent(){
+		//1-5
+		double dynamicF;
+		if(sliderVMin.getValueIsAdjusting()){
+			dynamicF = (double) sliderVMin.getValue();
+			lblVminValue.setText("" + dynamicF);
+		}
+	}
+	
+	private void sliderVmaxEvent(){
+		//6-10
+		double dynamicF;
+		if(sliderVMax.getValueIsAdjusting()){
+			dynamicF = (double) sliderVMax.getValue();
+			lblVmaxValue.setText("" + dynamicF);
 		}
 	}
 
+	private void sliderNEvent(){
+		//10-100
+		double dynamicF;
+		if(sliderN.getValueIsAdjusting()){
+			dynamicF = (double) sliderN.getValue();
+			lblNValue.setText("" + dynamicF);
+		}
+	}
+	
+	
 	void btnLaunchSimulationEvent(ActionEvent event){
 
 		boolean buttonsOn = false;
@@ -192,8 +219,22 @@ public class cicloCApplet extends JApplet implements Runnable {
 
 			sliderT1.setEnabled(buttonsOn);
 			sliderVMin.setEnabled(buttonsOn);
+			sliderVMax.setEnabled(buttonsOn);
+			sliderN.setEnabled(buttonsOn);
 			sliderT2.setEnabled(buttonsOn);
+			
+			if(isHot){
+				btnHot.setEnabled(false);
+				btnCold.setEnabled(true);
+			}
+			else{
+				btnHot.setEnabled(true);
+				btnCold.setEnabled(false);
+			}
 
+			lblBulb.setIcon(new ImageIcon(bulbOffImage));
+			lblLED.setIcon(new ImageIcon(LEDOffImage));
+			
 			repaint();
 
 		}
@@ -212,8 +253,36 @@ public class cicloCApplet extends JApplet implements Runnable {
 
 			sliderT1.setEnabled(buttonsOn);
 			sliderVMin.setEnabled(buttonsOn);
+			sliderVMax.setEnabled(buttonsOn);
+			sliderN.setEnabled(buttonsOn);
 			sliderT2.setEnabled(buttonsOn);
+			btnHot.setEnabled(buttonsOn);
 			model.simulate();
+			
+			lblBulb.setIcon(new ImageIcon(bulbOnImage));
+			lblLED.setIcon(new ImageIcon(LEDOnImage));
+			
+			int precision = 8;
+			String x = String.valueOf(model.getTl());
+
+			if(x.length() > precision){
+				lblLEDValue.setText("" + x.substring(0, precision) + " segundos");
+			}
+			else{
+				lblLEDValue.setText(x + "segundos");
+			}
+			
+			x = String.valueOf(model.getTb());
+
+			if(x.length() > precision){
+				lblBulbValue.setText("" + x.substring(0, precision) + " segundos");
+			}
+			else{
+				lblBulbValue.setText(x + " segundos");
+			}
+			
+			tBulb.start();
+			tLED.start();
 			
 			model.getT().start();
 			flujo.start();
@@ -264,8 +333,49 @@ public class cicloCApplet extends JApplet implements Runnable {
 			chartUT.replacePlot(0, model.getPUT(), "", Color.RED, 1f, true);
 			chartUT.visualizaMuestras(0,true,pSize);
 			
+			
+			int precision = 8;
+			
+			String x = String.valueOf(model.getw());
+			
+			if(x.length() > precision){
+				lblTrabajoCValue.setText(x.substring(0,precision));
+			}
+			else{
+				lblTrabajoCValue.setText(x);
+			}
+		
+			x = String.valueOf(model.getW());
+		
+			if(x.length() > precision){
+				lblTrabajoValue.setText(x.substring(0,precision));
+			}
+			else{
+				lblTrabajoValue.setText(x);
+			}
+			
+			x = String.valueOf(model.getE());
+			
+			if(x.length() > precision){
+				lblEValue.setText(x.substring(0,precision));
+			}
+			else{
+				lblEValue.setText(x);
+			}
+			
 			model.getT().start();
 			
+			tBulb.pause();
+			if(tBulb.getTime() > BULB_TIME){
+				lblBulb.setIcon(new ImageIcon (bulbOffImage));
+			}
+			tBulb.start();
+			
+			tLED.pause();
+			if(tLED.getTime() > LED_TIME){
+				lblLED.setIcon(new ImageIcon (LEDOffImage));
+			}
+			tLED.start();
 			
 			this.updatePanels();
 			repaint();
@@ -297,7 +407,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 		Point2D [] nullArray = new Point2D[0];
 
 		//Crear modelo
-		model = new cicloCModel(T1, T2, Vmin, Vmax, N);
+		model = new cicloCModel(T1, T2, Vmin, Vmax, N, isHot);
 		
 		calculateLimits();
 		
@@ -329,7 +439,8 @@ public class cicloCApplet extends JApplet implements Runnable {
 		chartUT.agregarGrafica(nullArray, "", Color.RED, 1f, false);
 		chartUT.setRangeAxis(TLimits, ULimits);
 		
-		
+		tBulb = new Time();
+		tLED = new Time();
 
 		//Load Images
 
@@ -410,19 +521,19 @@ public class cicloCApplet extends JApplet implements Runnable {
 		labelOutputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panelTitleOutputs.add(labelOutputData);
 
-		lblPhase = new JLabel("Velocidad:");
+		lblPhase = new JLabel("Trabajo Ciclo:");
 		lblPhase.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblVValue = new JLabel();
-		lblVValue.setText("0");
-		lblVValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTrabajoCValue = new JLabel();
+		lblTrabajoCValue.setText("0");
+		lblTrabajoCValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel lblPosicion = new JLabel("Posici\u00F3n:");
+		JLabel lblPosicion = new JLabel("Trabajo:");
 		lblPosicion.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblPositionValue = new JLabel();
-		lblPositionValue.setText("0");
-		lblPositionValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTrabajoValue = new JLabel();
+		lblTrabajoValue.setText("0");
+		lblTrabajoValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 				btnLaunchSimulation = new JButton("Iniciar");
 				btnLaunchSimulation.setFont(new Font("Tahoma", Font.PLAIN, 16));
@@ -431,44 +542,100 @@ public class cicloCApplet extends JApplet implements Runnable {
 						btnLaunchSimulationEvent(event);
 					}
 				});
+		
+		btnHot = new JButton("");
+		hotImage = loadImage(hot);
+		btnHot.setIcon(new ImageIcon(hotImage));
+		btnHot.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				btnHot.setEnabled(false);
+				btnCold.setEnabled(true);
+				isHot = true;
+				lblE.setText("Rendimiento");
+			}
+		});
+		btnHot.setEnabled(false);
+		
+		btnCold = new JButton("");
+		btnCold.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				btnHot.setEnabled(true);
+				btnCold.setEnabled(false);
+				isHot = false;
+				lblE.setText("Eficiencia");
+			}
+		});
+		
+		coldImage = loadImage(cold);
+		btnCold.setIcon(new ImageIcon(coldImage));
+		btnCold.setEnabled(true);
+		
+		lblE = new JLabel("Rendimiento:");
+		lblE.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblEValue = new JLabel();
+		lblEValue.setText("0");
+		lblEValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-					.addContainerGap()
+					.addGap(9)
+					.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 234, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(btnCold, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap())
+				.addGroup(gl_panelOutputs.createSequentialGroup()
+					.addGap(22)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblPhase, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+							.addComponent(lblE, GroupLayout.PREFERRED_SIZE, 84, GroupLayout.PREFERRED_SIZE)
 							.addGap(26)
-							.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED, 89, Short.MAX_VALUE))
+							.addComponent(lblEValue, GroupLayout.DEFAULT_SIZE, 103, Short.MAX_VALUE))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblPosicion, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
-							.addGap(26)
-							.addComponent(lblPositionValue, GroupLayout.PREFERRED_SIZE, 147, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED, 70, Short.MAX_VALUE)))
-					.addGap(7))
-				.addComponent(panelTitleOutputs, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 341, Short.MAX_VALUE)
-				.addGroup(gl_panelOutputs.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 324, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(lblPhase, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+									.addGap(26))
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(lblPosicion, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
+									.addGap(29)))
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
+								.addComponent(lblTrabajoValue, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(lblTrabajoCValue, GroupLayout.PREFERRED_SIZE, 103, GroupLayout.PREFERRED_SIZE))))
+					.addGap(18)
+					.addComponent(btnHot, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap())
 		);
 		gl_panelOutputs.setVerticalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
 					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addGap(11)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblPhase)
-						.addComponent(lblVValue))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblPosicion, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblPositionValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-					.addGap(143)
-					.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 62, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap())
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addPreferredGap(ComponentPlacement.RELATED, 10, Short.MAX_VALUE)
+							.addComponent(btnHot, GroupLayout.PREFERRED_SIZE, 69, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED))
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+								.addComponent(lblTrabajoCValue)
+								.addComponent(lblPhase))
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+								.addComponent(lblPosicion, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblTrabajoValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addComponent(lblE, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblEValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+							.addPreferredGap(ComponentPlacement.RELATED)))
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+						.addComponent(btnCold, GroupLayout.PREFERRED_SIZE, 69, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 62, GroupLayout.PREFERRED_SIZE))
+					.addGap(122))
 		);
 		panelOutputs.setLayout(gl_panelOutputs);
 
@@ -476,13 +643,13 @@ public class cicloCApplet extends JApplet implements Runnable {
 		panel_1.setBorder(new LineBorder(new Color(0, 0, 0)));
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);
 		gl_panel_control.setHorizontalGroup(
-			gl_panel_control.createParallelGroup(Alignment.LEADING)
-				.addGroup(Alignment.TRAILING, gl_panel_control.createSequentialGroup()
+			gl_panel_control.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_panel_control.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
-						.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 343, Short.MAX_VALUE)
-						.addComponent(panelInputs, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 343, Short.MAX_VALUE)
-						.addComponent(panel_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 343, Short.MAX_VALUE))
+						.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+						.addComponent(panelInputs, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
+						.addComponent(panel_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		gl_panel_control.setVerticalGroup(
@@ -491,8 +658,8 @@ public class cicloCApplet extends JApplet implements Runnable {
 					.addContainerGap()
 					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 225, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panelOutputs, GroupLayout.DEFAULT_SIZE, 305, Short.MAX_VALUE)
-					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 196, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED, 115, Short.MAX_VALUE)
 					.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 					.addContainerGap())
 		);
@@ -529,7 +696,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 		sliderT1.setValue(350);
 		sliderT1.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
-				sliderStrenghtEvent();
+				sliderT1Event();
 			}
 		});
 
@@ -540,7 +707,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 		sliderT2.setValue(300);
 		sliderT2.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				sliderStaticFrictionEvent();
+				sliderT2Event();
 			}
 		});
 
@@ -551,7 +718,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 		sliderVMin.setValue(3);
 		sliderVMin.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				sliderDynamicFrictionEvent();
+				sliderVminEvent();
 			}
 		});
 		
@@ -562,6 +729,11 @@ public class cicloCApplet extends JApplet implements Runnable {
 		lblVmaxValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		sliderVMax = new JSlider();
+		sliderVMax.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
+				sliderVmaxEvent();
+			}
+		});
 		sliderVMax.setValue(6);
 		sliderVMax.setMinorTickSpacing(1);
 		
@@ -572,6 +744,11 @@ public class cicloCApplet extends JApplet implements Runnable {
 		lblNValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		sliderN = new JSlider();
+		sliderN.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				sliderNEvent();
+			}
+		});
 		sliderN.setValue(10);
 		sliderN.setMinorTickSpacing(1);
 
@@ -656,6 +833,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 		panel_control.setLayout(gl_panel_control);
 
 		JPanel panel_visualizar = new JPanel();
+		panel_visualizar.setBackground(Color.WHITE);
 
 
 		GroupLayout groupLayout = new GroupLayout(getContentPane());
@@ -663,34 +841,127 @@ public class cicloCApplet extends JApplet implements Runnable {
 			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, 369, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addGap(1)
 					.addComponent(panel_visualizar, GroupLayout.DEFAULT_SIZE, 845, Short.MAX_VALUE)
 					.addContainerGap())
 		);
 		groupLayout.setVerticalGroup(
 			groupLayout.createParallelGroup(Alignment.TRAILING)
 				.addGroup(groupLayout.createSequentialGroup()
-					.addGroup(groupLayout.createParallelGroup(Alignment.LEADING)
-						.addGroup(groupLayout.createSequentialGroup()
+					.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING)
+						.addGroup(Alignment.LEADING, groupLayout.createSequentialGroup()
 							.addContainerGap()
 							.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, 598, Short.MAX_VALUE))
 						.addGroup(groupLayout.createSequentialGroup()
 							.addGap(12)
-							.addComponent(panel_visualizar, GroupLayout.DEFAULT_SIZE, 587, Short.MAX_VALUE)))
+							.addComponent(panel_visualizar, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
 					.addContainerGap())
 		);
 				
 				JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+				
+				panelPiston = new JPanelGrafica();
+				
+				JPanel panel_5 = new JPanel();
+				panel_5.setBackground(Color.WHITE);
 				GroupLayout gl_panel_visualizar = new GroupLayout(panel_visualizar);
 				gl_panel_visualizar.setHorizontalGroup(
 					gl_panel_visualizar.createParallelGroup(Alignment.LEADING)
 						.addComponent(tabbedPane, GroupLayout.DEFAULT_SIZE, 845, Short.MAX_VALUE)
+						.addGroup(gl_panel_visualizar.createSequentialGroup()
+							.addGap(10)
+							.addComponent(panelPiston, GroupLayout.PREFERRED_SIZE, 540, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 275, Short.MAX_VALUE)
+							.addContainerGap())
 				);
 				gl_panel_visualizar.setVerticalGroup(
 					gl_panel_visualizar.createParallelGroup(Alignment.LEADING)
-						.addComponent(tabbedPane, GroupLayout.DEFAULT_SIZE, 597, Short.MAX_VALUE)
+						.addGroup(gl_panel_visualizar.createSequentialGroup()
+							.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 289, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(gl_panel_visualizar.createParallelGroup(Alignment.LEADING)
+								.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 291, Short.MAX_VALUE)
+								.addComponent(panelPiston, GroupLayout.DEFAULT_SIZE, 291, Short.MAX_VALUE))
+							.addContainerGap())
 				);
+				
+		
+				JPanel panelBulb = new JPanel();
+				panelBulb.setBackground(Color.WHITE);
+				
+				JPanel panelLED = new JPanel();
+				panelLED.setBackground(Color.WHITE);
+				
+			    lblBulbValue = new JLabel("-  Horas");
+				
+				lblLEDValue = new JLabel("-  Horas");
+				GroupLayout gl_panel_5 = new GroupLayout(panel_5);
+				gl_panel_5.setHorizontalGroup(
+					gl_panel_5.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panel_5.createSequentialGroup()
+							.addGroup(gl_panel_5.createParallelGroup(Alignment.LEADING, false)
+								.addComponent(panelLED, 0, 0, Short.MAX_VALUE)
+								.addComponent(panelBulb, GroupLayout.PREFERRED_SIZE, 132, Short.MAX_VALUE))
+							.addGap(18)
+							.addGroup(gl_panel_5.createParallelGroup(Alignment.LEADING)
+								.addComponent(lblBulbValue)
+								.addComponent(lblLEDValue))
+							.addContainerGap(87, Short.MAX_VALUE))
+				);
+				gl_panel_5.setVerticalGroup(
+					gl_panel_5.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panel_5.createSequentialGroup()
+							.addComponent(panelBulb, GroupLayout.PREFERRED_SIZE, 143, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(panelLED, GroupLayout.DEFAULT_SIZE, 137, Short.MAX_VALUE))
+						.addGroup(gl_panel_5.createSequentialGroup()
+							.addGap(64)
+							.addComponent(lblBulbValue)
+							.addPreferredGap(ComponentPlacement.RELATED, 135, Short.MAX_VALUE)
+							.addComponent(lblLEDValue)
+							.addGap(64))
+				);
+				
+				LEDOnImage = loadImage(LEDOn);
+				LEDOffImage = loadImage(LEDOff);
+				lblLED = new JLabel(new ImageIcon(LEDOffImage));
+				lblLED.setBackground(Color.WHITE);
+				
+				GroupLayout gl_panelLED = new GroupLayout(panelLED);
+				gl_panelLED.setHorizontalGroup(
+					gl_panelLED.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelLED.createSequentialGroup()
+							.addComponent(lblLED, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+							.addContainerGap(33, Short.MAX_VALUE))
+				);
+				gl_panelLED.setVerticalGroup(
+					gl_panelLED.createParallelGroup(Alignment.TRAILING)
+						.addGroup(Alignment.LEADING, gl_panelLED.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(lblLED, GroupLayout.DEFAULT_SIZE, 126, Short.MAX_VALUE))
+				);
+				panelLED.setLayout(gl_panelLED);
+				
+				bulbOnImage = loadImage(bulbOn);
+				bulbOffImage = loadImage(bulbOff);
+				lblBulb = new JLabel(new ImageIcon(bulbOffImage));
+				lblBulb.setBackground(Color.WHITE);
+				
+				GroupLayout gl_panelBulb = new GroupLayout(panelBulb);
+				gl_panelBulb.setHorizontalGroup(
+					gl_panelBulb.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelBulb.createSequentialGroup()
+							.addComponent(lblBulb, GroupLayout.PREFERRED_SIZE, 134, GroupLayout.PREFERRED_SIZE)
+							.addContainerGap(30, Short.MAX_VALUE))
+				);
+				gl_panelBulb.setVerticalGroup(
+					gl_panelBulb.createParallelGroup(Alignment.LEADING)
+						.addComponent(lblBulb, GroupLayout.DEFAULT_SIZE, 143, Short.MAX_VALUE)
+				);
+				panelBulb.setLayout(gl_panelBulb);
+				panel_5.setLayout(gl_panel_5);
 				
 				JPanel panelXV = new JPanel();
 				panelXV.setBackground(Color.WHITE);
@@ -717,51 +988,16 @@ public class cicloCApplet extends JApplet implements Runnable {
 							.addContainerGap(306, Short.MAX_VALUE))
 				);
 				panel_4.setLayout(gl_panel_4);
-				
-				JPanel panel_5 = new JPanel();
-				
-				JPanelGrafica panelPiston1 = new JPanelGrafica();
-				GroupLayout gl_panel_5 = new GroupLayout(panel_5);
-				gl_panel_5.setHorizontalGroup(
-					gl_panel_5.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 263, Short.MAX_VALUE)
-						.addComponent(panelPiston1, GroupLayout.DEFAULT_SIZE, 263, Short.MAX_VALUE)
-				);
-				gl_panel_5.setVerticalGroup(
-					gl_panel_5.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 241, Short.MAX_VALUE)
-						.addComponent(panelPiston1, GroupLayout.DEFAULT_SIZE, 241, Short.MAX_VALUE)
-				);
-				panel_5.setLayout(gl_panel_5);
-				
-				JPanel panel_6 = new JPanel();
-				
-				JPanelGrafica panelDraw1 = new JPanelGrafica();
-				GroupLayout gl_panel_6 = new GroupLayout(panel_6);
-				gl_panel_6.setHorizontalGroup(
-					gl_panel_6.createParallelGroup(Alignment.LEADING)
-						.addComponent(panelDraw1, GroupLayout.DEFAULT_SIZE, 272, Short.MAX_VALUE)
-				);
-				gl_panel_6.setVerticalGroup(
-					gl_panel_6.createParallelGroup(Alignment.LEADING)
-						.addComponent(panelDraw1, GroupLayout.DEFAULT_SIZE, 295, Short.MAX_VALUE)
-				);
-				panel_6.setLayout(gl_panel_6);
 				GroupLayout gl_panelXV = new GroupLayout(panelXV);
 				gl_panelXV.setHorizontalGroup(
 					gl_panelXV.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelXV.createSequentialGroup()
 							.addContainerGap()
-							.addGroup(gl_panelXV.createParallelGroup(Alignment.TRAILING)
-								.addComponent(panel_5, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addGroup(Alignment.LEADING, gl_panelXV.createSequentialGroup()
-									.addComponent(panel_2, GroupLayout.PREFERRED_SIZE, 263, GroupLayout.PREFERRED_SIZE)
-									.addPreferredGap(ComponentPlacement.RELATED)
-									.addComponent(panel_3, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)))
+							.addComponent(panel_2, GroupLayout.PREFERRED_SIZE, 263, GroupLayout.PREFERRED_SIZE)
 							.addPreferredGap(ComponentPlacement.RELATED)
-							.addGroup(gl_panelXV.createParallelGroup(Alignment.LEADING)
-								.addComponent(panel_4, GroupLayout.PREFERRED_SIZE, 272, GroupLayout.PREFERRED_SIZE)
-								.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 272, GroupLayout.PREFERRED_SIZE))
+							.addComponent(panel_3, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(panel_4, GroupLayout.PREFERRED_SIZE, 272, GroupLayout.PREFERRED_SIZE)
 							.addContainerGap(11, Short.MAX_VALUE))
 				);
 				gl_panelXV.setVerticalGroup(
@@ -773,11 +1009,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 								.addGroup(gl_panelXV.createParallelGroup(Alignment.TRAILING, false)
 									.addComponent(panel_3, Alignment.LEADING, 0, 0, Short.MAX_VALUE)
 									.addComponent(panel_2, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 241, Short.MAX_VALUE)))
-							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addGroup(gl_panelXV.createParallelGroup(Alignment.LEADING)
-								.addComponent(panel_6, GroupLayout.DEFAULT_SIZE, 295, Short.MAX_VALUE)
-								.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 295, Short.MAX_VALUE))
-							.addContainerGap())
+							.addContainerGap(317, Short.MAX_VALUE))
 				);
 				
 				panelUV = new JPanelGrafica();
@@ -810,38 +1042,6 @@ public class cicloCApplet extends JApplet implements Runnable {
 				JPanel panelXT = new JPanel();
 				panelXT.setBackground(Color.WHITE);
 				tabbedPane.addTab("Gráficas T", null, panelXT, null);
-				
-				JPanel panel_7 = new JPanel();
-				
-				JPanelGrafica panelDraw2 = new JPanelGrafica();
-				GroupLayout gl_panel_7 = new GroupLayout(panel_7);
-				gl_panel_7.setHorizontalGroup(
-					gl_panel_7.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 272, Short.MAX_VALUE)
-						.addComponent(panelDraw2, GroupLayout.DEFAULT_SIZE, 272, Short.MAX_VALUE)
-				);
-				gl_panel_7.setVerticalGroup(
-					gl_panel_7.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 295, Short.MAX_VALUE)
-						.addComponent(panelDraw2, GroupLayout.DEFAULT_SIZE, 295, Short.MAX_VALUE)
-				);
-				panel_7.setLayout(gl_panel_7);
-				
-				JPanel panel_8 = new JPanel();
-				
-				JPanelGrafica panelPiston2 = new JPanelGrafica();
-				GroupLayout gl_panel_8 = new GroupLayout(panel_8);
-				gl_panel_8.setHorizontalGroup(
-					gl_panel_8.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 541, Short.MAX_VALUE)
-						.addComponent(panelPiston2, GroupLayout.DEFAULT_SIZE, 541, Short.MAX_VALUE)
-				);
-				gl_panel_8.setVerticalGroup(
-					gl_panel_8.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 295, Short.MAX_VALUE)
-						.addComponent(panelPiston2, GroupLayout.DEFAULT_SIZE, 288, Short.MAX_VALUE)
-				);
-				panel_8.setLayout(gl_panel_8);
 				
 				JPanel panel_9 = new JPanel();
 				
@@ -897,24 +1097,17 @@ public class cicloCApplet extends JApplet implements Runnable {
 				GroupLayout gl_panelXT = new GroupLayout(panelXT);
 				gl_panelXT.setHorizontalGroup(
 					gl_panelXT.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 840, Short.MAX_VALUE)
 						.addGroup(gl_panelXT.createSequentialGroup()
 							.addContainerGap()
-							.addGroup(gl_panelXT.createParallelGroup(Alignment.TRAILING)
-								.addComponent(panel_8, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addGroup(Alignment.LEADING, gl_panelXT.createSequentialGroup()
-									.addComponent(panel_9, GroupLayout.PREFERRED_SIZE, 263, GroupLayout.PREFERRED_SIZE)
-									.addPreferredGap(ComponentPlacement.RELATED)
-									.addComponent(panel_10, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)))
+							.addComponent(panel_9, GroupLayout.PREFERRED_SIZE, 263, GroupLayout.PREFERRED_SIZE)
 							.addPreferredGap(ComponentPlacement.RELATED)
-							.addGroup(gl_panelXT.createParallelGroup(Alignment.LEADING)
-								.addComponent(panel_11, GroupLayout.PREFERRED_SIZE, 272, GroupLayout.PREFERRED_SIZE)
-								.addComponent(panel_7, GroupLayout.PREFERRED_SIZE, 272, GroupLayout.PREFERRED_SIZE))
+							.addComponent(panel_10, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(panel_11, GroupLayout.PREFERRED_SIZE, 272, GroupLayout.PREFERRED_SIZE)
 							.addContainerGap(11, Short.MAX_VALUE))
 				);
 				gl_panelXT.setVerticalGroup(
 					gl_panelXT.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 569, Short.MAX_VALUE)
 						.addGroup(gl_panelXT.createSequentialGroup()
 							.addContainerGap()
 							.addGroup(gl_panelXT.createParallelGroup(Alignment.LEADING)
@@ -922,11 +1115,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 								.addGroup(gl_panelXT.createParallelGroup(Alignment.TRAILING, false)
 									.addComponent(panel_10, Alignment.LEADING, 0, 0, Short.MAX_VALUE)
 									.addComponent(panel_9, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 241, Short.MAX_VALUE)))
-							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addGroup(gl_panelXT.createParallelGroup(Alignment.LEADING)
-								.addComponent(panel_7, GroupLayout.DEFAULT_SIZE, 295, Short.MAX_VALUE)
-								.addComponent(panel_8, GroupLayout.DEFAULT_SIZE, 295, Short.MAX_VALUE))
-							.addContainerGap())
+							.addContainerGap(317, Short.MAX_VALUE))
 				);
 				panelXT.setLayout(gl_panelXT);
 				panel_visualizar.setLayout(gl_panel_visualizar);

@@ -75,13 +75,37 @@ public class cicloCModel extends Model {
 	private boolean firstCompleted;
 	private boolean rCicle;
 
+	double w, r, e;
+	double W, lastW;
+	double tb, tl; //En horas
 
-	public cicloCModel(double T1, double T2, double Vmin, double Vmax, double N){ 
+
+	public cicloCModel(double T1, double T2, double Vmin, double Vmax, double N, boolean hot){ 
 		this.T1 = T1;
 		this.T2 = T2;
 		this.Vmin = Vmin;
 		this.Vmax = Vmax;
 		this.N = N;
+
+		temp2 = R*T1;
+		temp3 = R*T2*(Math.pow(Vmax, gamma - 1)/Math.pow(R*T1, gamma));
+		temp4 = 1/(1-gamma);
+		temp5 = temp2/Math.pow(temp3, temp4);
+
+		//Lo damos para los dos
+
+		w = N*R*(T1-T2)*Math.log(temp5/Vmin);
+
+		//En el caso del motor
+		r = 1 - (T2/T1);
+
+		//En el caso de máquina frig
+		e = T2/(T1-T2);
+
+		//Tiempo bombilla, tiempo led
+		tb = w/(60.0);
+		tl = w;
+		lastW = 0;
 
 		fPV = new ArrayList<Point2D>();
 		fUV = new ArrayList<Point2D>();
@@ -105,8 +129,18 @@ public class cicloCModel extends Model {
 		pUT.add(new Point2D.Double(0,0));
 
 		firstCompleted = false;
-		rCicle = false;
-		currentPhase = PHASE_4;
+		if(hot == true){
+			rCicle = true;
+			currentPhase = PHASE_1;
+		}
+		else{
+			rCicle = false;
+			currentPhase = PHASE_4;
+		}
+		
+		k1 /= N*0.1;
+		k2 /= N*0.1;
+		
 		t = new Time();
 	}
 
@@ -124,6 +158,7 @@ public class cicloCModel extends Model {
 		calculateT();
 		calculateU();
 		calculateS();
+		calculateW();
 
 		double Vout = V*N*1000;
 
@@ -147,8 +182,6 @@ public class cicloCModel extends Model {
 			jumpToNextPhase();
 		}
 	}
-
-
 
 
 	private boolean nextPhaseReached() {
@@ -232,6 +265,7 @@ public class cicloCModel extends Model {
 	}
 
 	private void jumpToNextPhase(){
+		lastW = W;
 		if(rCicle){
 			switch(currentPhase){
 			case PHASE_1:
@@ -245,6 +279,7 @@ public class cicloCModel extends Model {
 				break;
 			case PHASE_4:
 				firstCompleted = true;
+				lastW = 0;
 				jumpToPhase(PHASE_1);
 				break;
 			}
@@ -253,6 +288,7 @@ public class cicloCModel extends Model {
 			switch(currentPhase){
 			case PHASE_1:
 				firstCompleted = true;
+				lastW = 0;
 				jumpToPhase(PHASE_4);
 				break;
 			case PHASE_2:
@@ -271,7 +307,6 @@ public class cicloCModel extends Model {
 
 
 	public void jumpToPhase(int phase) {
-
 		this.currentPhase = phase;
 		lastT = 0;
 
@@ -385,6 +420,51 @@ public class cicloCModel extends Model {
 			U = Math.pow(Vmin/V, 2.0/3.0)*(3.0/2.0)*R*T1;
 			break;
 		}
+	}
+
+	private void calculateW(){
+
+		if(rCicle == true){
+			switch(currentPhase){
+			case PHASE_1:
+				W = N*R*T1*Math.log(V/Vmin);
+				break;
+			case PHASE_2:
+				W = -N*(3.0/2.0)*R*(T-T1);
+				break;
+			case PHASE_3:
+				W = N*R*T2*Math.log(V/Vmax);
+				break;
+			case PHASE_4:
+				W = -N*(3.0/2.0)*R*(T-T2);
+				break;
+			}
+		}
+		else{
+			switch(currentPhase){
+			case PHASE_1:
+				temp2 = R*T1;
+				temp3 = R*T2*(Math.pow(Vmax, gamma - 1)/Math.pow(R*T1, gamma));
+				temp4 = 1/(1-gamma);
+				temp5 = temp2/Math.pow(temp3, temp4);
+				W = N*R*T1*Math.log(V/temp5);
+				break;
+			case PHASE_2:
+				W = -N*(3.0/2.0)*R*(T-T2);
+				break;
+			case PHASE_3:
+				temp2 = R*T2;
+				temp3 = R*T1*(Math.pow(Vmin, gamma - 1)/Math.pow(R*T2, gamma));
+				temp4 = 1/(1-gamma);
+				temp5 = temp2/Math.pow(temp3, temp4);
+				W = N*R*T2*Math.log(V/temp5);
+				break;
+			case PHASE_4:
+				W = -N*(3.0/2.0)*R*(T-T1);
+				break;
+			}
+		}
+		W += lastW;
 	}
 
 	//TODO ask paco
@@ -535,6 +615,63 @@ public class cicloCModel extends Model {
 		return firstCompleted;
 	}
 
+	public void setColdMode(){
+		rCicle = false;
+		currentPhase = PHASE_4;
+	}
+
+
+	public void setHotMode(){
+		rCicle = true;
+		currentPhase = PHASE_1;
+	}
+
+	public double getE(){
+		if(rCicle){
+			return r;
+		}
+		else{
+			return e;
+		}
+	}
+
+
+	public double getw() {
+		if(rCicle == true){
+			return w;
+		}
+		else{
+			return -w;
+		}
+	}
+
+
+	public double getW() {
+		return W;
+	}
+
+
+	public double getTb() {
+		return tb;
+	}
+
+
+	public void setTb(double tb) {
+		this.tb = tb;
+	}
+
+
+	public double getTl() {
+		return tl;
+	}
+
+
+	public void setTl(double tl) {
+		this.tl = tl;
+		
+	}
+
+	
 
 
 

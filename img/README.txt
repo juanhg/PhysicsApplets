@@ -9,3 +9,5 @@ diamond: http://www.iconarchive.com/show/casino-icons-by-designcontest/Diamond-i
 banana: http://www.iconarchive.com/show/fruits-icons-by-fasticon/banana-icon.html
 burger: http://www.iconarchive.com/show/food-icons-by-aha-soft/burger-icon.html
 stone: http://www.iconarchive.com/show/harry-potter-icons-by-anton-gerasimenko/Philosophers-Stone-2-icon.html
+bulb: https://www.iconfinder.com/icons/43712/bulb_idea_light_icon#size=128
+      http://pixabay.com/en/icon-symbol-yellow-lamp-cartoon-32207/
