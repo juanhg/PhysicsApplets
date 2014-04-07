@@ -28,8 +28,11 @@
  */
 
 package com.juanhg.cicloc;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Rectangle;
+import java.awt.TexturePaint;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
@@ -57,7 +60,7 @@ import javax.swing.border.MatteBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import sun.org.mozilla.javascript.internal.regexp.SubString;
+import org.jfree.chart.annotations.XYAnnotation;
 
 import com.juanhg.util.Time;
 import com.raccoon.easyjchart.Grafica;
@@ -73,18 +76,24 @@ public class cicloCApplet extends JApplet implements Runnable {
 	private final String bulbOff = "bulbOff.png";
 	private final String LEDOn = "LEDOn.png";
 	private final String LEDOff = "LEDOff.png";
+	private final String waterTexture = "waterTexture.jpg";
+
+	final int pistonY0 = 3;
+	final int pistonY1 = 7;
 	
 	private final int LED_TIME = 18000;
 	private final int BULB_TIME = 3000;
 
 	//Control variables
-	double sleepTime = 5;	
+	double sleepTime = 100;	
 	boolean end = false;
 	
 	Time tBulb, tLED;
 
 	//Inputs
 	double T1, T2, Vmin, Vmax, N;
+	
+	TexturePaint texture; 
 
 	//Thread that executed the simulation
 	private Thread flujo = null;
@@ -97,7 +106,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 	
 	//Panels
 	private JPanel panel_1;
-	private JPanelGrafica panelPV, panelUV, panelTV, panelST, panelUT, panelPT, panelPiston;
+	private JPanelGrafica panelPV, panelUV, panelTV, panelST, panelUT, panelPT, panelPiston, panelPistonInterno;
 
 	int supXLimit = 8;
 	int infXLimit = 2;
@@ -111,9 +120,12 @@ public class cicloCApplet extends JApplet implements Runnable {
 
 
 	//Images
-	BufferedImage hotImage, coldImage, bulbOnImage, bulbOffImage, LEDOnImage, LEDOffImage;
+	BufferedImage hotImage, coldImage, bulbOnImage, bulbOffImage, LEDOnImage, LEDOffImage, waterTextureImage;
 
 	//Annotations
+	XYAnnotation pistonImageAnnotation = null;
+	XYAnnotation lineAnnotation1 = null; 
+	XYAnnotation lineAnnotation2 = null;
 
 	//Labels
 	private JLabel lblTrabajoCValue;  
@@ -333,6 +345,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 			chartUT.replacePlot(0, model.getPUT(), "", Color.RED, 1f, true);
 			chartUT.visualizaMuestras(0,true,pSize);
 			
+			updatePiston();
 			
 			int precision = 8;
 			
@@ -439,14 +452,21 @@ public class cicloCApplet extends JApplet implements Runnable {
 		chartUT.agregarGrafica(nullArray, "", Color.RED, 1f, false);
 		chartUT.setRangeAxis(TLimits, ULimits);
 		
+		chartPiston = new Grafica(nullArray, "", "", "", "", false, Color.BLUE, 1f, false);
+		chartPiston.setRangeAxis((int)Math.floor(getPistonX0() - 1), (int)Math.ceil(getPistonX1() + 1), 0, 10);
+		
+		
 		tBulb = new Time();
 		tLED = new Time();
 
 		//Load Images
-
+		waterTextureImage = loadImage(waterTexture);
+		texture = new TexturePaint(waterTextureImage, new Rectangle(0,0,300,200));
 
 		//Set Images  
 
+		
+		this.drawPiston();
 
 		//Actualize panels
 		updatePanels();
@@ -490,6 +510,31 @@ public class cicloCApplet extends JApplet implements Runnable {
 		SLimits = model.getSLimits();
 	}
 
+	
+	private void drawPiston(){
+		BasicStroke stroke = new BasicStroke(5.0f);
+		
+		chartPiston.drawLine(getPistonX0(), getPistonY0(), getPistonX1(), getPistonY0(), stroke, Color.black);
+		chartPiston.drawLine(getPistonX0(), getPistonY1(), getPistonX1(), getPistonY1(), stroke, Color.black);
+		chartPiston.drawLine(getPistonX1(), getPistonY0(), getPistonX1(), getPistonY1(), stroke, Color.black);
+	}
+	
+	private void updatePiston(){
+		BasicStroke stroke = new BasicStroke(5.0f);
+		
+		chartPiston.deleteImage(pistonImageAnnotation);
+		if(model.getV() < getPistonY0()){
+			pistonImageAnnotation = chartPiston.drawBox(model.getV(), getPistonY0(), getPistonX1(), getPistonY1(), null, null,texture);
+		}
+		else{
+			pistonImageAnnotation = null;
+		}
+		
+		chartPiston.deleteImage(lineAnnotation1);
+		lineAnnotation1 = chartPiston.drawLine(model.getV(), getPistonY0() - 0.5, model.getV(), getPistonY1() + 0.5, stroke, Color.black);
+		chartPiston.deleteImage(lineAnnotation2);
+		lineAnnotation2 = chartPiston.drawLine(model.getV() - 3, (getPistonY0()+getPistonY1())/2, model.getV(), (getPistonY0()+getPistonY1())/2, stroke, Color.black);
+	}
 
 	
 	private void updatePanels(){
@@ -499,7 +544,23 @@ public class cicloCApplet extends JApplet implements Runnable {
 		panelPT.actualizaGrafica(chartPT);
 		panelST.actualizaGrafica(chartST);
 		panelUT.actualizaGrafica(chartUT);
-//		panelPiston2.actualizaGrafica(chartPiston2);
+		panelPistonInterno.actualizaGrafica(chartPiston);
+	}
+	
+	private double getPistonX0(){
+		return Math.floor((-Vmax*10000));
+	}
+	
+	private double getPistonX1(){
+		return (Math.floor((-Vmin*10000))) + 0.5;
+	}
+	
+	private double getPistonY0(){
+		return pistonY0;
+	}
+	
+	private double getPistonY1(){
+		return pistonY1;
 	}
 	
 	private void autogeneratedCode(){
@@ -862,6 +923,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 				JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 				
 				panelPiston = new JPanelGrafica();
+				panelPiston.setBackground(Color.WHITE);
 				
 				JPanel panel_5 = new JPanel();
 				panel_5.setBackground(Color.WHITE);
@@ -870,9 +932,9 @@ public class cicloCApplet extends JApplet implements Runnable {
 					gl_panel_visualizar.createParallelGroup(Alignment.LEADING)
 						.addComponent(tabbedPane, GroupLayout.DEFAULT_SIZE, 845, Short.MAX_VALUE)
 						.addGroup(gl_panel_visualizar.createSequentialGroup()
-							.addGap(10)
-							.addComponent(panelPiston, GroupLayout.PREFERRED_SIZE, 540, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addContainerGap()
+							.addComponent(panelPiston, GroupLayout.PREFERRED_SIZE, 431, GroupLayout.PREFERRED_SIZE)
+							.addGap(119)
 							.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 275, Short.MAX_VALUE)
 							.addContainerGap())
 				);
@@ -882,10 +944,25 @@ public class cicloCApplet extends JApplet implements Runnable {
 							.addComponent(tabbedPane, GroupLayout.PREFERRED_SIZE, 289, GroupLayout.PREFERRED_SIZE)
 							.addPreferredGap(ComponentPlacement.RELATED)
 							.addGroup(gl_panel_visualizar.createParallelGroup(Alignment.LEADING)
-								.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 291, Short.MAX_VALUE)
-								.addComponent(panelPiston, GroupLayout.DEFAULT_SIZE, 291, Short.MAX_VALUE))
+								.addComponent(panelPiston, GroupLayout.DEFAULT_SIZE, 291, Short.MAX_VALUE)
+								.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 291, Short.MAX_VALUE))
 							.addContainerGap())
 				);
+				
+				panelPistonInterno = new JPanelGrafica();
+				panelPistonInterno.setBackground(Color.WHITE);
+				GroupLayout gl_panelPiston = new GroupLayout(panelPiston);
+				gl_panelPiston.setHorizontalGroup(
+					gl_panelPiston.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelPiston.createSequentialGroup()
+							.addComponent(panelPistonInterno, GroupLayout.PREFERRED_SIZE, 430, GroupLayout.PREFERRED_SIZE)
+							.addContainerGap(110, Short.MAX_VALUE))
+				);
+				gl_panelPiston.setVerticalGroup(
+					gl_panelPiston.createParallelGroup(Alignment.LEADING)
+						.addComponent(panelPistonInterno, GroupLayout.DEFAULT_SIZE, 291, Short.MAX_VALUE)
+				);
+				panelPiston.setLayout(gl_panelPiston);
 				
 		
 				JPanel panelBulb = new JPanel();

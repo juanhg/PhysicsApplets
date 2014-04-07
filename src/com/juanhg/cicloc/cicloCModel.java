@@ -104,7 +104,7 @@ public class cicloCModel extends Model {
 
 		//Tiempo bombilla, tiempo led
 		tb = w/(60.0);
-		tl = w;
+		tl = w/(10.0);
 		lastW = 0;
 
 		fPV = new ArrayList<Point2D>();
@@ -610,6 +610,9 @@ public class cicloCModel extends Model {
 		return new Point2D.Double(inf, sup + sup*modif);
 	}
 
+	public double getV(){
+		return -V*10000;
+	}
 
 	public boolean isFirstCompleted() {
 		return firstCompleted;
