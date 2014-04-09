@@ -28,7 +28,6 @@
 package com.juanhg.cicloc;
 
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +50,7 @@ public class cicloCModel extends Model {
 
 	private int currentPhase;
 	private Time t;
+	@SuppressWarnings("unused")
 	private double lastT;
 
 	//Constants
@@ -505,15 +505,12 @@ public class cicloCModel extends Model {
 
 	/** GETTERS & SETTERS **/
 
-	public double getActualTime() {
-		return actualTime;
-	}
 
 	public int getPhase() {
 		return currentPhase;
 	}
 
-	public Time getT() {
+	public Time getTime() {
 		return t;
 	}
 
@@ -610,8 +607,13 @@ public class cicloCModel extends Model {
 		return new Point2D.Double(inf, sup + sup*modif);
 	}
 
+	public double getT() {
+		return T;
+	}
+
+
 	public double getV(){
-		return -V*10000;
+		return -V*1000*N;
 	}
 
 	public boolean isFirstCompleted() {

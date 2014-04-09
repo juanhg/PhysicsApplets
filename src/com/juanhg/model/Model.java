@@ -29,6 +29,7 @@
 package com.juanhg.model;
 
 
+
 /**
  * Abstract class that represent a Fisic Model
  * @author Juan Hernandez Garcia
@@ -42,8 +43,10 @@ public abstract class Model {
 	public double finalTime;
 
 	//Actual time
-	public double actualTime;
-
+	public double currentTime;
+	
+	public double lastTime;
+	
 	//Increment of Time
 	public double dt;
 	
@@ -59,7 +62,12 @@ public abstract class Model {
 	 * @return True if the final Time has been reached.
 	 * False in other case.
 	 */
-	public abstract boolean finalTimeReached();
+	public boolean finalTimeReached(){
+		if(getCurrentTime() > finalTime){
+			return true;
+		}
+		return false;
+	}
 
 	public int getActualSimulation() {
 		return actualSimulation;
@@ -69,12 +77,22 @@ public abstract class Model {
 		return totalSimulations;
 	}
 
-	public double getActualTime() {
-		return actualTime;
+	public double getCurrentTime() {
+		return currentTime;
 	}
 
-	public void setActualTime(double actualTime) {
-		this.actualTime = actualTime;
+	public void setCurrentTime(double currentTime) {
+		this.currentTime = currentTime;
 	}
+
+	public double getLastTime() {
+		return lastTime;
+	}
+
+	public void setLastTime(double lastTime) {
+		this.lastTime = lastTime;
+	}
+	
+	
 	
 }

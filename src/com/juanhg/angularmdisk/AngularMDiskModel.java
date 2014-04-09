@@ -409,10 +409,6 @@ public class AngularMDiskModel extends Model {
 	}
 	
 	
-	public double getActualTime() {
-		return actualTime;
-	}
-
 
 	public int getPhase() {
 		return phase;
@@ -426,10 +422,6 @@ public class AngularMDiskModel extends Model {
 		return r;
 	}
 	
-	
-	
-	
-
 	public double getCriticPhi() {
 		return phi2 - phi0;
 	}

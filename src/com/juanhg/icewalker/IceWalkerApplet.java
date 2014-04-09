@@ -43,7 +43,6 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
@@ -65,7 +64,6 @@ import org.jfree.chart.annotations.XYAnnotation;
 import com.juanhg.util.ImageProcessing;
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
-import javax.swing.JTextField;
 
 public class IceWalkerApplet extends JApplet implements Runnable {
 
@@ -337,9 +335,9 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 		while(!end){
 
 			model.getT().pause();
-			chart.deleteImage(boxAnnotation);
+			chart.deleteAnnotation(boxAnnotation);
 			boxAnnotation = chart.setImageAtPoint(boxImage, model.getBoxPoint());
-			chart.deleteImage(personAnnotation);
+			chart.deleteAnnotation(personAnnotation);
 			rotatedPersonImage = ImageProcessing.rotateRadians(getPersonImage(), model.getPhiPerson());
 			personAnnotation = chart.setImageAtPoint(rotatedPersonImage, model.getPersonPoint());
 
@@ -440,9 +438,9 @@ public class IceWalkerApplet extends JApplet implements Runnable {
 		}
 
 		//Set Images  
-		chart.deleteImage(boxAnnotation);
+		chart.deleteAnnotation(boxAnnotation);
 		boxAnnotation = chart.setImageAtPoint(boxImage, model.getBoxPoint());
-		chart.deleteImage(personAnnotation);
+		chart.deleteAnnotation(personAnnotation);
 		personAnnotation = chart.setImageAtPoint(getPersonImage(), model.getPersonPoint());
 		chart.setImageAtPoint(baseImage, model.getBase());
 		chart.setImageAtPoint(pulleyImage, model.getPulleyPoint());

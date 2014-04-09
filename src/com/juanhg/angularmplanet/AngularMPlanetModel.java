@@ -179,7 +179,7 @@ public class AngularMPlanetModel extends Model {
 		this.totalSimulations = simulations;
 		
 		/** Calculated Values **/
-		this.initTime = this.actualTime =  0;
+		this.initTime = this.currentTime =  0;
 		this.phi = 0;
 		this.finalTime = ((1 - this.finalMass)/this.velocity)*this.initMass;
 		this.dt = finalTime/this.totalSimulations;
@@ -195,7 +195,7 @@ public class AngularMPlanetModel extends Model {
 		
 		
 		temp1 = (2.0*Math.PI)*this.initDistance;
-		temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.actualTime*10000)/this.initMass)),2.0);
+		temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.currentTime*10000)/this.initMass)),2.0);
 		temp3 = this.Vo;
 		temp4 = 3.65*Math.pow(10.0, 8);
 		this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
@@ -221,7 +221,7 @@ public class AngularMPlanetModel extends Model {
 		actualSimulation++;
 		
 		//Increments the actual time
-		actualTime += dt;
+		currentTime += dt;
 		
 		//Calculates the new radius and distance
 		if(!finalTimeReached()){
@@ -233,12 +233,12 @@ public class AngularMPlanetModel extends Model {
 			temp1 = this.initDistance;
 			temp2 = 1;
 			temp3 = this.velocity/(this.initMass);
-			temp4 = this.actualTime;
+			temp4 = this.currentTime;
 			this.actualDistance = temp1/(temp2 - (temp3*temp4));
 		
 			
 			temp1 = (2.0*Math.PI)*this.initDistance;
-			temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.actualTime*10000)/this.initMass)),2.0);
+			temp2 = Math.pow((1-((this.velocity/Math.pow(10.0, velocityModifier)*this.currentTime*10000)/this.initMass)),2.0);
 			temp3 = this.Vo;
 			temp4 = 3.65*Math.pow(10.0, 8);
 			this.ActualPeriod = (temp1/(temp2*temp3))*temp4;
@@ -250,10 +250,10 @@ public class AngularMPlanetModel extends Model {
 			
 		//phi
 		term1 = this.Vo/this.initDistance;
-		term2 = this.actualTime;
-		term3 = (this.velocity * Math.pow(this.actualTime, 2)) / this.initMass;
-		term4 = (Math.pow(this.velocity,2) * Math.pow(this.actualTime, 3)) / this.initMass;
-		term5 = (Math.pow(this.velocity,2) * Math.pow(this.actualTime, 3)) / (3 * Math.pow(this.initMass,2));
+		term2 = this.currentTime;
+		term3 = (this.velocity * Math.pow(this.currentTime, 2)) / this.initMass;
+		term4 = (Math.pow(this.velocity,2) * Math.pow(this.currentTime, 3)) / this.initMass;
+		term5 = (Math.pow(this.velocity,2) * Math.pow(this.currentTime, 3)) / (3 * Math.pow(this.initMass,2));
 		this.phi = term1 * (term2 - term3 + term4 + term5);
 		this.finalPhi = this.phi;	
 		
@@ -309,7 +309,7 @@ public class AngularMPlanetModel extends Model {
 	
 	public boolean finalTimeReached(){
 	
-		return (this.actualTime >= this.finalTime);
+		return (this.currentTime >= this.finalTime);
 	}
 
 	public double getFinalMass() {
@@ -321,7 +321,7 @@ public class AngularMPlanetModel extends Model {
 	}
 
 	public double getActualTime() {
-		return actualTime;
+		return currentTime;
 	}
 
 	public double getFinalDistance() {

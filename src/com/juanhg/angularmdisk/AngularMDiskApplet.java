@@ -189,7 +189,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 
 		if(sliderFallRadius.getValueIsAdjusting() && model.getPhase() == AngularMDiskModel.PHASE_0){
 						
-			chart.deleteImage(targetAnnotation);
+			chart.deleteAnnotation(targetAnnotation);
 			targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(), 0);
 			lblFallRadiusValue.setText(Double.toString((double)sliderFallRadius.getValue()));
 			
@@ -252,8 +252,8 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 			
 			model.getT().stop();
 
-			chart.deleteImage(bugAnnotation);
-			chart.deleteImage(diskAnnotation);
+			chart.deleteAnnotation(bugAnnotation);
+			chart.deleteAnnotation(diskAnnotation);
 			
 			this.readInputs();
 			this.initSimulation();
@@ -335,7 +335,7 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 			sliderDiskVelocity.setEnabled(false);
 			sliderFallRadius.setEnabled(false);
 
-			chart.deleteImage(targetAnnotation);
+			chart.deleteAnnotation(targetAnnotation);
 
 			btnPhase1.setEnabled(false);
 
@@ -364,38 +364,38 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 			//Cam1
 			if(cam1 == true){
 				
-				chart.deleteImage(roseAnnotation);
+				chart.deleteAnnotation(roseAnnotation);
 				roseAnnotation = chart.setImageAtPoint(this.roseImage, 0, 0); 
 				
 				this.rotatedDiskImage = ImageProcessing.rotateRadians(this.diskImage, model.getDiskPhi());
-				chart.deleteImage(diskAnnotation);
+				chart.deleteAnnotation(diskAnnotation);
 				diskAnnotation = chart.setImageAtPoint(this.rotatedDiskImage, 0, 0); 
 
 				switch(model.getPhase()){
 				case AngularMDiskModel.PHASE_0:
-					chart.deleteImage(targetAnnotation);
+					chart.deleteAnnotation(targetAnnotation);
 					targetAnnotation = chart.setImageAtPoint(targetImage, sliderFallRadius.getValue(), 0);
 					break;
 				case AngularMDiskModel.PHASE_1:
 					bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi(cam1));
 					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, model.getBugPhi(cam1) + this.bugOrientation);
-					chart.deleteImage(bugAnnotation);
+					chart.deleteAnnotation(bugAnnotation);
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint()); 
 					break;
 				case AngularMDiskModel.PHASE_2:
 					bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi(cam1));
 					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, model.getBugPhi(cam1) + this.bugOrientation);
-					chart.deleteImage(bugAnnotation);
+					chart.deleteAnnotation(bugAnnotation);
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint());					
 					break;
 				case AngularMDiskModel.PHASE_3:
 					bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi(cam1));
 					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, model.getCriticPhi() + this.bugOrientation);
-					chart.deleteImage(bugAnnotation);
+					chart.deleteAnnotation(bugAnnotation);
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint());
 					break;
 				case AngularMDiskModel.PHASE_4:
-					chart.deleteImage(bugAnnotation);
+					chart.deleteAnnotation(bugAnnotation);
 					end = true;
 
 					sliderFriction.setEnabled(true);
@@ -421,38 +421,38 @@ public class AngularMDiskApplet extends JApplet implements Runnable {
 //				backgroundAnnotation = chart.setImageAtPoint(this.rotatedBackgroundImage, 0, 0);
 				
 				this.rotatedRoseImage = ImageProcessing.rotateRadians(this.roseImage, -model.getDiskPhi());
-				chart.deleteImage(roseAnnotation);
+				chart.deleteAnnotation(roseAnnotation);
 				roseAnnotation = chart.setImageAtPoint(this.rotatedRoseImage, 0, 0); 
 				
-				chart.deleteImage(diskAnnotation);
+				chart.deleteAnnotation(diskAnnotation);
 				diskAnnotation = chart.setImageAtPoint(this.diskImage, 0, 0);
 				
 				switch(model.getPhase()){
 				case AngularMDiskModel.PHASE_0:
-					chart.deleteImage(targetAnnotation);
+					chart.deleteAnnotation(targetAnnotation);
 					target = new PolarPoint2D(sliderFallRadius.getValue(), -model.getDiskPhi());
 					targetAnnotation = chart.setImageAtPoint(targetImage, target.toCartesianPoint());
 					break;
 				case AngularMDiskModel.PHASE_1:
 					bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi(cam1));
 					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, model.getBugPhi(cam1) + this.bugOrientation);
-					chart.deleteImage(bugAnnotation);
+					chart.deleteAnnotation(bugAnnotation);
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint());
 					break;
 				case AngularMDiskModel.PHASE_2:
 					bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi(cam1));
 					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, model.getBugPhi(cam1) + this.bugOrientation);
-					chart.deleteImage(bugAnnotation);
+					chart.deleteAnnotation(bugAnnotation);
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint());					
 					break;
 				case AngularMDiskModel.PHASE_3:
 					bug = new PolarPoint2D(model.get_r()*100, model.getBugPhi(cam1));
 					this.rotatedBugImage = ImageProcessing.rotateRadians(this.bugImage, -model.getPhi0() + this.bugOrientation);
-					chart.deleteImage(bugAnnotation);
+					chart.deleteAnnotation(bugAnnotation);
 					bugAnnotation = chart.setImageAtPoint(this.rotatedBugImage, bug.toCartesianPoint());
 					break;
 				case AngularMDiskModel.PHASE_4:
-					chart.deleteImage(bugAnnotation);
+					chart.deleteAnnotation(bugAnnotation);
 					end = true;
 
 					sliderFriction.setEnabled(true);

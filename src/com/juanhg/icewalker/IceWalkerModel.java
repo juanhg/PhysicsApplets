@@ -28,7 +28,6 @@
 package com.juanhg.icewalker;
 
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 
 import com.juanhg.model.Model;
 import com.juanhg.util.Time;
@@ -321,12 +320,6 @@ public class IceWalkerModel extends Model {
 	
 	/** GETTERS & SETTERS **/
 	
-
-	
-	public double getActualTime() {
-		return actualTime;
-	}
-
 	public void jumpToPhase(int phase) {
 		lastPhaseX = x;
 		lastPhaseV = v;
