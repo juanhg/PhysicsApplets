@@ -472,7 +472,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 		tAnnotation = new XYTextAnnotation("-", 5, 5);
 		tAnnotation.setPaint(Color.RED);
 		tAnnotation.setFont(new Font(null, 10, 40));
-		chartTermo.setAnnotation(tAnnotation, 5, 5);
+		chartTermo.setAnnotation(tAnnotation);
 		
 		this.drawPiston();
 
@@ -570,7 +570,7 @@ public class cicloCApplet extends JApplet implements Runnable {
 		tAnnotation = new XYTextAnnotation(x, 5, 5);
 		tAnnotation.setPaint(Color.RED);
 		tAnnotation.setFont(new Font(null, 10, 40));
-		chartTermo.setAnnotation(tAnnotation, 5, 5);
+		chartTermo.setAnnotation(tAnnotation);
 	}
 	
 	private double getPistonX0(){

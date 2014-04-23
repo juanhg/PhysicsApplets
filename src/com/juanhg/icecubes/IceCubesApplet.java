@@ -28,11 +28,15 @@
  */
 
 package com.juanhg.icecubes;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -57,25 +61,29 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.jfree.chart.annotations.XYAnnotation;
+import org.jfree.chart.annotations.XYBoxAnnotation;
+import org.jfree.chart.annotations.XYLineAnnotation;
+import org.jfree.chart.annotations.XYShapeAnnotation;
 
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
-
-import java.awt.FlowLayout;
-
-import javax.swing.JSpinner;
-
-import java.awt.Choice;
-import java.awt.List;
 
 public class IceCubesApplet extends JApplet implements Runnable {
 
 
 	private static final long serialVersionUID = -3017107307819023599L;
 	private final String water = "water.png";
+	
+	private final int WATER_TYPE = 0;
+	private final int MILK_TYPE = 1;
+	private final int COKE_TYPE = 2;
+	private final int WINE_TYPE = 3;
 
 	final int pistonY0 = 3;
 	final int pistonY1 = 7;
+	
+	final Color waterColor = new Color(100,180,255,70);
+	final Color cubeColor = new Color(240,240,255,230);
 	
 	//Control variables
 	long sleepTime = 100;	
@@ -92,21 +100,41 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	private IceCubesModel model;
 	
 	//Charts
-	private Grafica chartTQ;
+	private Grafica chartTQ, chartGlass;
 	
 	//Panels
-	private JPanelGrafica panel7, panelChart;
+	private JPanelGrafica panel_7, panelChart, panelGlass;
 
 	int supXLimit = 10;
 	int infXLimit = 0;
 	int supYLimit = 10;
 	int infYLimit = 0;
-
+	
+	double gYBase = 0;
+	double gYTop = 7;
+	double gXLeft = 2;
+	double gXRight = 8;
+	
+	double cX = 2.7;
+	double cXSeparation = 2.5;
+	
+	double cW = 2;
+	double cH = 1.2;
+	
 	//Images
 	BufferedImage waterImage;
 	
 	//Annotations
 	XYAnnotation exampleAnnotation = null;
+	XYAnnotation gBaseAnnotation = null;
+	XYAnnotation gTopAnnotation = null;
+	XYAnnotation gLeftAnnotation = null;
+	XYAnnotation gRightAnnotation = null;
+	XYAnnotation gSurfaceAnnotation = null;
+	XYAnnotation cube1Annotation = null;
+	XYAnnotation cube2Annotation = null;
+	XYAnnotation cube3Annotation = null;
+	XYAnnotation cube4Annotation = null;
 
 	//Labels
 	private JLabel lblCaseValue;  
@@ -151,9 +179,9 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 
 	private void sliderI1Event(){
-		//350 - 450
 		if(sliderVol.getValueIsAdjusting()){
 			lblVolValue.setText(Integer.toString(sliderVol.getValue()));
+			updateGlass(sliderVol.getValue());
 		}
 	}
 	
@@ -177,10 +205,11 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	
 	private void sliderI4Event(){
 		//6-10
-		double dynamicF;
 		if(sliderN.getValueIsAdjusting()){
-			dynamicF = (double) sliderN.getValue();
-			lblNValue.setText("" + dynamicF);
+			N = sliderN.getValue();
+			lblNValue.setText("" + N);
+			
+			updateGlass(sliderVol.getValue());
 		}
 	}
 	
@@ -255,6 +284,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			lblCaseValue.setText("" + model.getCurrentCase());
 			lblPhaseValue.setText("" + model.getCurrentPhase());
 
+			updateGlass(sliderVol.getValue());
 			
 			repaint();
 			
@@ -289,9 +319,16 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		// Inicializar charts
 		chartTQ = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
 		chartTQ.setRangeAxis(0, 2500, -35, 35);
+		
+		chartGlass = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
+		chartGlass.setRangeAxis(0, 10, -1, 8);
+		chartGlass.setAxisVisible(false);
+		
 		//Load Images
 
 		//Set Images  
+		
+		drawGlass();
 
 		//Actualize panels
 		updatePanels();
@@ -323,14 +360,109 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			exponent--;
 			number *= 10;
 		}
+		
 		return exponent;
 
 	}
 	
-	private void updatePanels(){
-		panelChart.actualizaGrafica(chartTQ);
+	private void drawGlass(){
+		Stroke border = new BasicStroke(3f);
+		
+		gBaseAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,gYBase-0.5,6,1), border, Color.BLACK, waterColor);
+		chartGlass.setAnnotation(gBaseAnnotation);
+		
+		gTopAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,gYTop-0.5,6,1), border, Color.BLACK);
+		chartGlass.setAnnotation(gTopAnnotation);
+		
+		gRightAnnotation = new XYLineAnnotation(gXRight, gYBase, gXRight, gYTop, border, Color.black);
+		chartGlass.setAnnotation(gRightAnnotation);
+	
+		gLeftAnnotation = new XYLineAnnotation(gXLeft, gYBase, gXLeft, gYTop, border, Color.black);
+		chartGlass.setAnnotation(gLeftAnnotation);
+		
+		gTopAnnotation = new XYBoxAnnotation(gXLeft, gYBase, gXRight, gYTop/2, null, null, waterColor);
+		chartGlass.setAnnotation(gTopAnnotation);
+		
+		updateGlass(sliderVol.getValue());
+		
+		
 	}
 	
+	private void updateGlass(double vol){
+		double surface = vol*gYTop/33;
+		Stroke border = new BasicStroke(3f);
+		
+		chartGlass.deleteAnnotation(gTopAnnotation);
+		gTopAnnotation = new XYBoxAnnotation(gXLeft, gYBase, gXRight, surface, null, null, waterColor);
+		chartGlass.setAnnotation(gTopAnnotation);
+		
+		chartGlass.deleteAnnotation(gSurfaceAnnotation);
+		gSurfaceAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,(surface)-0.5,6,1), border, Color.BLACK, waterColor);
+		chartGlass.setAnnotation(gSurfaceAnnotation);
+		
+		chartGlass.deleteAnnotation(cube1Annotation);
+		chartGlass.deleteAnnotation(cube2Annotation);
+		chartGlass.deleteAnnotation(cube3Annotation);
+		chartGlass.deleteAnnotation(cube4Annotation);
+		
+		if(N >= 1){
+			
+			cube1Annotation = new XYShapeAnnotation(new Rectangle2D.Double(cX, surface-1, getCubeW(), getCubeH()), border, Color.BLACK, cubeColor);
+			chartGlass.setAnnotation(cube1Annotation);
+			
+			if(N>= 2){
+				
+				cube2Annotation = new XYShapeAnnotation(new Rectangle2D.Double(cX + cXSeparation, surface-1,  getCubeW(), getCubeH()), border, Color.BLACK, cubeColor);
+				chartGlass.setAnnotation(cube2Annotation);
+				
+				if(N>= 3){
+					
+					cube3Annotation = new XYShapeAnnotation(new Rectangle2D.Double(cX, surface - 1 - cXSeparation/1.5,  getCubeW(), getCubeH()), border, Color.BLACK, cubeColor);
+					chartGlass.setAnnotation(cube3Annotation);
+					
+					if(N>=4){
+						
+						cube4Annotation = new XYShapeAnnotation(new Rectangle2D.Double(cX + cXSeparation, surface - 1 - cXSeparation/1.5,  getCubeW(), getCubeH()), border, Color.BLACK, cubeColor);
+						chartGlass.setAnnotation(cube4Annotation);
+					}
+				}
+			}
+		}
+		
+		repaint();
+	}
+	
+	
+	private void updatePanels(){
+		panelChart.actualizaGrafica(chartTQ);
+		panelGlass.actualizaGrafica(chartGlass);
+	}
+	
+	
+	public double getCubeW(){
+		if(model != null){
+			return model.getL()*cW/model.getLo();
+		}
+		return cW;
+	}
+	
+	public double getCubeH(){
+		if(model != null){
+			return model.getL()*cH/model.getLo();
+		}
+		return cH;
+	}
+	
+//	private Color getFluidColor(){
+//		switch(type){
+//		case WATER_TYPE:
+//			break;
+//		case MILK_TYPE:
+//			break;
+//		case WINE_TYPE:
+//			break;
+//		}
+//	}
 	
 	private void autogeneratedCode(){
 		JPanel panel_control = new JPanel();
@@ -481,15 +613,15 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		lbltValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 
-		lblVolValue = new JLabel("33");
+		lblVolValue = new JLabel("20");
 		lblVolValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 
 		sliderVol = new JSlider();
-		sliderVol.setMinimum(1);
-		sliderVol.setMaximum(33);
+		sliderVol.setMinimum(12);
+		sliderVol.setMaximum(30);
 		sliderVol.setMinorTickSpacing(1);
-		sliderVol.setValue(33);
+		sliderVol.setValue(20);
 		sliderVol.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
 				sliderI1Event();
@@ -524,34 +656,60 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		JLabel lblI4 = new JLabel("N\u00BA de Cubitos");
 		lblI4.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblNValue = new JLabel("5");
+		lblNValue = new JLabel("1");
 		lblNValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		sliderN = new JSlider();
-		sliderN.setMaximum(10);
+		sliderN.setMinimum(1);
+		sliderN.setMaximum(4);
 		sliderN.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				sliderI4Event();
 			}
 		});
-		sliderN.setValue(5);
+		sliderN.setValue(1);
 		sliderN.setMinorTickSpacing(1);
 		
 		waterImage = loadImage(water);
 		btnWater = new JButton(new ImageIcon(waterImage));
 		btnWater.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
+				btnWater.setEnabled(false);
+				btnMilk.setEnabled(true);
+				btn3.setEnabled(true);
+				btn4.setEnabled(true);
 			}
 		});
 		
 		btnMilk = new JButton("Milk");
+		btnMilk.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				btnWater.setEnabled(true);
+				btnMilk.setEnabled(false);
+				btn3.setEnabled(true);
+				btn4.setEnabled(true);
+			}
+		});
 		
 		btn3 = new JButton("Coke");
+		btn3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				btnWater.setEnabled(true);
+				btnMilk.setEnabled(true);
+				btn3.setEnabled(false);
+				btn4.setEnabled(true);
+			}
+		});
 		
 		btn4 = new JButton("New button");
-
-
-
+		btn4.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				btnWater.setEnabled(true);
+				btnMilk.setEnabled(true);
+				btn3.setEnabled(true);
+				btn4.setEnabled(false);
+			}
+		});
 
 		GroupLayout gl_panelInputs = new GroupLayout(panelInputs);
 		gl_panelInputs.setHorizontalGroup(
@@ -664,23 +822,12 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				panel.setBackground(Color.WHITE);
 				
 				JPanel panel_1 = new JPanel();
+				panel_1.setBounds(1, 1, 366, 31);
 				panel_1.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
 				
 				JLabel lblSimulacin = new JLabel("Simulaci\u00F3n");
 				lblSimulacin.setFont(new Font("Tahoma", Font.PLAIN, 14));
 				panel_1.add(lblSimulacin);
-				GroupLayout gl_panel = new GroupLayout(panel);
-				gl_panel.setHorizontalGroup(
-					gl_panel.createParallelGroup(Alignment.LEADING)
-						.addComponent(panel_1, GroupLayout.DEFAULT_SIZE, 348, Short.MAX_VALUE)
-				);
-				gl_panel.setVerticalGroup(
-					gl_panel.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panel.createSequentialGroup()
-							.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-							.addContainerGap(536, Short.MAX_VALUE))
-				);
-				panel.setLayout(gl_panel);
 				
 				JPanel panel_3 = new JPanel();
 				panel_3.setBorder(new LineBorder(new Color(0, 0, 0)));
@@ -688,6 +835,26 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				panel_3.setBounds(368, 0, 326, 245);
 				panel_visualizar.setLayout(null);
 				panel_visualizar.add(panel);
+				panel.setLayout(null);
+				panel.add(panel_1);
+				
+				panel_7 = new JPanelGrafica();
+				panel_7.setBackground(Color.WHITE);
+				panel_7.setBounds(1, 31, 366, 463);
+				panel.add(panel_7);
+				
+				panelGlass = new JPanelGrafica();
+				panelGlass.setBackground(Color.WHITE);
+				GroupLayout gl_panel_7 = new GroupLayout(panel_7);
+				gl_panel_7.setHorizontalGroup(
+					gl_panel_7.createParallelGroup(Alignment.LEADING)
+						.addComponent(panelGlass, GroupLayout.DEFAULT_SIZE, 366, Short.MAX_VALUE)
+				);
+				gl_panel_7.setVerticalGroup(
+					gl_panel_7.createParallelGroup(Alignment.LEADING)
+						.addComponent(panelGlass, GroupLayout.DEFAULT_SIZE, 463, Short.MAX_VALUE)
+				);
+				panel_7.setLayout(gl_panel_7);
 				panel_visualizar.add(panel_3);
 				panel_3.setLayout(null);
 				
@@ -700,7 +867,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				panel_4.add(lblGrficaDeEvolucin);
 				panel_3.add(panel_4);
 				
-				panel7 = new JPanelGrafica();
+				JPanel panel7 = new JPanel();
 				panel7.setBorder(new LineBorder(new Color(0, 0, 0)));
 				panel7.setBackground(Color.WHITE);
 				panel7.setBounds(1, 31, 324, 214);

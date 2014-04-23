@@ -125,6 +125,7 @@ public class IceCubesModel extends Model {
 
 			chartTQ.add(new Point2D.Double(Q,t));
 			System.out.println("Q:" + Q + " t:" + t + " T: " + T);
+			System.out.println("l:" + l);
 
 			if(nextPhaseReached()){
 				jumpToNextPhase();
@@ -421,6 +422,33 @@ public class IceCubesModel extends Model {
 		}
 		return false;
 	}
+
+	
+	
+	public double getT() {
+		return T;
+	}
+
+
+	public double gett() {
+		return t;
+	}
+
+	
+	public double getLo() {
+		return lo;
+	}
+
+
+	public double getV() {
+		return V;
+	}
+
+
+	public double getL() {
+		return l;
+	}
+
 
 	/** GETTERS & SETTERS **/
 
