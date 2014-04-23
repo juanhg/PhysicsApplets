@@ -41,6 +41,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
+import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -59,23 +60,30 @@ import org.jfree.chart.annotations.XYAnnotation;
 
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
+
 import java.awt.FlowLayout;
+
+import javax.swing.JSpinner;
+
+import java.awt.Choice;
+import java.awt.List;
 
 public class IceCubesApplet extends JApplet implements Runnable {
 
 
 	private static final long serialVersionUID = -3017107307819023599L;
-	private final String example = "example.png";
+	private final String water = "water.png";
 
 	final int pistonY0 = 3;
 	final int pistonY1 = 7;
 	
 	//Control variables
-	long sleepTime = 300;	
+	long sleepTime = 100;	
 	boolean end = false;
 	
 	//Inputs
-	double I1, I2, I3, I4, I5;
+	double vol, T, t;
+	int N, type;
 	
 	//Thread that executed the simulation
 	private Thread flujo = null;
@@ -84,10 +92,10 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	private IceCubesModel model;
 	
 	//Charts
-	private Grafica chartExample;
+	private Grafica chartTQ;
 	
 	//Panels
-	private JPanelGrafica panelExample;
+	private JPanelGrafica panel7, panelChart;
 
 	int supXLimit = 10;
 	int infXLimit = 0;
@@ -95,21 +103,22 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	int infYLimit = 0;
 
 	//Images
-	BufferedImage exampleImage;
+	BufferedImage waterImage;
 	
 	//Annotations
 	XYAnnotation exampleAnnotation = null;
 
 	//Labels
-	private JLabel lblO1Value;  
-	private JLabel lblI2Value, lblI3Value, lblI1Value, lblO2Value, lblI4Value, lblI5Value;
-	private JLabel lblO1, lblO3Value, lblO3;
+	private JLabel lblCaseValue;  
+	private JLabel lblTValue, lbltValue, lblVolValue, lblPhaseValue, lblNValue;
+	private JLabel lblO1;
 
 	//Sliders
-	private JSlider sliderI1, sliderI2, sliderI3, sliderI4, sliderI5; 
+	private JSlider sliderVol, sliderT, slidert, sliderN; 
 
 	//Buttons
-	JButton btnLaunchSimulation;
+	JButton btnLaunchSimulation, btnWater, btnMilk, btn3, btn4;
+
 
 
 	public IceCubesApplet() {}
@@ -136,51 +145,42 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 		//Obtain values from interface
 		this.readInputs();
-		this.initSimulation();	
+		this.initSimulation();
 	}
 
 
 
 	private void sliderI1Event(){
 		//350 - 450
-		if(sliderI1.getValueIsAdjusting()){
-			lblI1Value.setText(Integer.toString(sliderI1.getValue()));
+		if(sliderVol.getValueIsAdjusting()){
+			lblVolValue.setText(Integer.toString(sliderVol.getValue()));
 		}
 	}
 	
 	private void sliderI2Event(){
 		//270-330
-		if(sliderI2.getValueIsAdjusting()){
+		if(sliderT.getValueIsAdjusting()){
 			double staticF;
-			staticF = (double) sliderI2.getValue();
-			lblI2Value.setText("" + staticF); 
+			staticF = (double) sliderT.getValue();
+			lblTValue.setText("" + staticF); 
 		}
 	}
 	
 	private void sliderI3Event(){
 		//1-5
 		double dynamicF;
-		if(sliderI3.getValueIsAdjusting()){
-			dynamicF = (double) sliderI3.getValue();
-			lblI3Value.setText("" + dynamicF);
+		if(slidert.getValueIsAdjusting()){
+			dynamicF = -(double) slidert.getValue();
+			lbltValue.setText("" + dynamicF);
 		}
 	}
 	
 	private void sliderI4Event(){
 		//6-10
 		double dynamicF;
-		if(sliderI4.getValueIsAdjusting()){
-			dynamicF = (double) sliderI4.getValue();
-			lblI4Value.setText("" + dynamicF);
-		}
-	}
-
-	private void sliderI5Event(){
-		//10-100
-		double dynamicF;
-		if(sliderI5.getValueIsAdjusting()){
-			dynamicF = (double) sliderI5.getValue();
-			lblI5Value.setText("" + dynamicF);
+		if(sliderN.getValueIsAdjusting()){
+			dynamicF = (double) sliderN.getValue();
+			lblNValue.setText("" + dynamicF);
 		}
 	}
 	
@@ -202,11 +202,10 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 			btnLaunchSimulation.setText("Iniciar");
 
-			sliderI1.setEnabled(buttonsOn);
-			sliderI3.setEnabled(buttonsOn);
-			sliderI4.setEnabled(buttonsOn);
-			sliderI5.setEnabled(buttonsOn);
-			sliderI2.setEnabled(buttonsOn);
+			sliderVol.setEnabled(buttonsOn);
+			slidert.setEnabled(buttonsOn);
+			sliderN.setEnabled(buttonsOn);
+			sliderT.setEnabled(buttonsOn);
 					
 			repaint();
 
@@ -223,13 +222,13 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			//Initializes and runs the thread (Run())
 			flujo = new Thread();
 			flujo = new Thread(this);
+			
+			model = new IceCubesModel(vol, T, t, 0, N);
 
-			sliderI1.setEnabled(buttonsOn);
-			sliderI3.setEnabled(buttonsOn);
-			sliderI4.setEnabled(buttonsOn);
-			sliderI5.setEnabled(buttonsOn);
-			sliderI2.setEnabled(buttonsOn);
-			model.simulate();
+			sliderVol.setEnabled(buttonsOn);
+			slidert.setEnabled(buttonsOn);
+			sliderN.setEnabled(buttonsOn);
+			sliderT.setEnabled(buttonsOn);
 			
 			model.getTime().start();
 			flujo.start();
@@ -245,14 +244,18 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		while(!end){
 
 			model.getTime().pause();
-			
 			//Begin step of simulation
 			model.simulate();
 			//End Step of simulation
-			
 			model.getTime().start();
 			
+			chartTQ.replacePlot(0, model.getChartTQ(), "", Color.BLUE, 1f, true);
 			this.updatePanels();
+			
+			lblCaseValue.setText("" + model.getCurrentCase());
+			lblPhaseValue.setText("" + model.getCurrentPhase());
+
+			
 			repaint();
 			
 			try {
@@ -269,11 +272,10 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	 * in the variable of the class 
 	 */
 	private void readInputs(){
-		I1 = sliderI1.getValue();
-		I2 = sliderI2.getValue();
-		I5 = sliderI5.getValue();
-		I3 = sliderI3.getValue()/(I5*1000);
-		I4 = sliderI4.getValue()/(I5*1000);
+		vol = sliderVol.getValue();
+		T = sliderT.getValue();
+		t = -slidert.getValue();
+		N = sliderN.getValue();
 	}
 
 	//Init the elements of the simulation
@@ -282,13 +284,12 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		Point2D [] nullArray = new Point2D[0];
 
 		//Crear modelo
-		model = new IceCubesModel(I1, I2, I3, I4, I5, true);
+		//model = new IceCubesModel(I1, I2, I3, (int)I4, (int)I5);
 		
 		// Inicializar charts
-		chartExample = new Grafica(nullArray,"", "", "V", "P", false, Color.BLUE,1f,false);
-		
+		chartTQ = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
+		chartTQ.setRangeAxis(0, 2500, -35, 35);
 		//Load Images
-		exampleImage = loadImage(example);
 
 		//Set Images  
 
@@ -327,7 +328,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	}
 	
 	private void updatePanels(){
-		panelExample.actualizaGrafica(chartExample);
+		panelChart.actualizaGrafica(chartTQ);
 	}
 	
 	
@@ -350,50 +351,42 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		labelOutputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panelTitleOutputs.add(labelOutputData);
 
-		lblO1 = new JLabel("O1:");
+		lblO1 = new JLabel("Caso:");
 		lblO1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblO1Value = new JLabel();
-		lblO1Value.setText("0");
-		lblO1Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblCaseValue = new JLabel();
+		lblCaseValue.setText("0");
+		lblCaseValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel lblO2 = new JLabel("O2:");
+		JLabel lblO2 = new JLabel("Fase:");
 		lblO2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblO2Value = new JLabel();
-		lblO2Value.setText("0");
-		lblO2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		lblO3 = new JLabel("O3:");
-		lblO3.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		lblO3Value = new JLabel();
-		lblO3Value.setText("0");
-		lblO3Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblPhaseValue = new JLabel();
+		lblPhaseValue.setText("0");
+		lblPhaseValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-					.addGap(22)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 84, GroupLayout.PREFERRED_SIZE)
-							.addGap(26)
-							.addComponent(lblO3Value, GroupLayout.DEFAULT_SIZE, 103, Short.MAX_VALUE))
+							.addGap(22)
+							.addComponent(lblO1, GroupLayout.DEFAULT_SIZE, 88, Short.MAX_VALUE)
+							.addPreferredGap(ComponentPlacement.RELATED))
+						.addGroup(Alignment.TRAILING, gl_panelOutputs.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)
+							.addGap(37)))
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
 						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(lblO1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-									.addGap(26))
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
-									.addGap(29)))
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(lblO2Value, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(lblO1Value, GroupLayout.PREFERRED_SIZE, 103, GroupLayout.PREFERRED_SIZE))))
-					.addGap(109))
+							.addComponent(lblCaseValue, GroupLayout.DEFAULT_SIZE, 13, Short.MAX_VALUE)
+							.addGap(3))
+						.addGroup(Alignment.LEADING, gl_panelOutputs.createSequentialGroup()
+							.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)))
+					.addGap(173))
 		);
 		gl_panelOutputs.setVerticalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
@@ -401,17 +394,13 @@ public class IceCubesApplet extends JApplet implements Runnable {
 					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblO1Value)
-						.addComponent(lblO1))
+						.addComponent(lblO1)
+						.addComponent(lblCaseValue))
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 						.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblO3Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-					.addGap(79))
+						.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+					.addGap(40))
 		);
 		panelOutputs.setLayout(gl_panelOutputs);
 
@@ -423,27 +412,27 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);
 		gl_panel_control.setHorizontalGroup(
 			gl_panel_control.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_panel_control.createSequentialGroup()
+				.addGroup(Alignment.LEADING, gl_panel_control.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
-						.addComponent(panel_6, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
-						.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
 						.addComponent(panelOutputs, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+						.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
+						.addComponent(panel_6, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
 						.addComponent(panelLicense, GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		gl_panel_control.setVerticalGroup(
-			gl_panel_control.createParallelGroup(Alignment.TRAILING)
-				.addGroup(Alignment.LEADING, gl_panel_control.createSequentialGroup()
+			gl_panel_control.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_panel_control.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 213, GroupLayout.PREFERRED_SIZE)
+					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 225, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 129, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 112, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 80, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(panelLicense, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(83, Short.MAX_VALUE))
+					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 		);
 		
 				btnLaunchSimulation = new JButton("Iniciar");
@@ -473,45 +462,47 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		JLabel lblNewLabel = new JLabel("GNU GENERAL PUBLIC LICENSE");
 		panelLicense.add(lblNewLabel);
 
-		JLabel LabelI1 = new JLabel("I1");
+		JLabel LabelI1 = new JLabel("Volumen");
 		LabelI1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		JLabel labelI2 = new JLabel("I2");
+		JLabel labelI2 = new JLabel("T");
 		labelI2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		JLabel labelI3 = new JLabel("I3");
+		JLabel labelI3 = new JLabel("t");
 		labelI3.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 		JPanel panelTitle = new JPanel();
 		panelTitle.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
 
-		lblI2Value = new JLabel("5");
-		lblI2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTValue = new JLabel("15");
+		lblTValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblI3Value = new JLabel("5");
-		lblI3Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
-
-
-		lblI1Value = new JLabel("5");
-		lblI1Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lbltValue = new JLabel("-15");
+		lbltValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 
-		sliderI1 = new JSlider();
-		sliderI1.setMaximum(10);
-		sliderI1.setMinorTickSpacing(1);
-		sliderI1.setValue(5);
-		sliderI1.addChangeListener(new ChangeListener() {
+		lblVolValue = new JLabel("33");
+		lblVolValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+
+
+		sliderVol = new JSlider();
+		sliderVol.setMinimum(1);
+		sliderVol.setMaximum(33);
+		sliderVol.setMinorTickSpacing(1);
+		sliderVol.setValue(33);
+		sliderVol.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
 				sliderI1Event();
 			}
 		});
 
 
-		sliderI2 = new JSlider();
-		sliderI2.setMaximum(10);
-		sliderI2.setMinorTickSpacing(1);
-		sliderI2.setValue(5);
-		sliderI2.addChangeListener(new ChangeListener() {
+		sliderT = new JSlider();
+		sliderT.setMinimum(5);
+		sliderT.setMaximum(30);
+		sliderT.setMinorTickSpacing(1);
+		sliderT.setValue(15);
+		sliderT.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				sliderI2Event();
 			}
@@ -520,46 +511,44 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 
 
-		sliderI3 = new JSlider();
-		sliderI3.setMaximum(10);
-		sliderI3.setValue(5);
-		sliderI3.addChangeListener(new ChangeListener() {
+		slidert = new JSlider();
+		slidert.setMinimum(5);
+		slidert.setMaximum(30);
+		slidert.setValue(15);
+		slidert.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				sliderI3Event();
 			}
 		});
 		
-		JLabel lblI4 = new JLabel("I4");
+		JLabel lblI4 = new JLabel("N\u00BA de Cubitos");
 		lblI4.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblI4Value = new JLabel("5");
-		lblI4Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblNValue = new JLabel("5");
+		lblNValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		sliderI4 = new JSlider();
-		sliderI4.setMaximum(10);
-		sliderI4.addChangeListener(new ChangeListener() {
+		sliderN = new JSlider();
+		sliderN.setMaximum(10);
+		sliderN.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				sliderI4Event();
 			}
 		});
-		sliderI4.setValue(5);
-		sliderI4.setMinorTickSpacing(1);
+		sliderN.setValue(5);
+		sliderN.setMinorTickSpacing(1);
 		
-		JLabel lblI5 = new JLabel("I5");
-		lblI5.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		lblI5Value = new JLabel("5");
-		lblI5Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		sliderI5 = new JSlider();
-		sliderI5.setMaximum(10);
-		sliderI5.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent e) {
-				sliderI5Event();
+		waterImage = loadImage(water);
+		btnWater = new JButton(new ImageIcon(waterImage));
+		btnWater.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
 			}
 		});
-		sliderI5.setValue(5);
-		sliderI5.setMinorTickSpacing(1);
+		
+		btnMilk = new JButton("Milk");
+		
+		btn3 = new JButton("Coke");
+		
+		btn4 = new JButton("New button");
 
 
 
@@ -567,37 +556,42 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		GroupLayout gl_panelInputs = new GroupLayout(panelInputs);
 		gl_panelInputs.setHorizontalGroup(
 			gl_panelInputs.createParallelGroup(Alignment.TRAILING)
+				.addComponent(panelTitle, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
 				.addGroup(gl_panelInputs.createSequentialGroup()
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+					.addContainerGap(23, Short.MAX_VALUE)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
 						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING, false)
-								.addComponent(labelI3, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(LabelI1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(labelI2, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE))
-							.addGap(18)
-							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-								.addComponent(lblI1Value, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblI2Value, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblI3Value, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE))
-							.addGap(18)
-							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(sliderI1, 0, 0, Short.MAX_VALUE)
-								.addComponent(sliderI2, 0, 0, Short.MAX_VALUE)
-								.addComponent(sliderI3, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)))
-						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(lblI4Value, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(sliderI4, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))
-						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addComponent(lblI5, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(lblI5Value, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(sliderI5, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)))
-					.addGap(19))
-				.addComponent(panelTitle, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 352, Short.MAX_VALUE)
+							.addComponent(btnWater, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(btnMilk, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(btn3, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(btn4, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+							.addGap(8))
+						.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+							.addGroup(gl_panelInputs.createSequentialGroup()
+								.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING, false)
+									.addComponent(labelI3, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+									.addComponent(LabelI1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+									.addComponent(labelI2, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE))
+								.addGap(18)
+								.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+									.addComponent(lblVolValue, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
+									.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+									.addComponent(lbltValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE))
+								.addGap(18)
+								.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING, false)
+									.addComponent(sliderVol, 0, 0, Short.MAX_VALUE)
+									.addComponent(sliderT, 0, 0, Short.MAX_VALUE)
+									.addComponent(slidert, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)))
+							.addGroup(gl_panelInputs.createSequentialGroup()
+								.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
+								.addGap(18)
+								.addComponent(lblNValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+								.addGap(18)
+								.addComponent(sliderN, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))))
+					.addGap(15))
 		);
 		gl_panelInputs.setVerticalGroup(
 			gl_panelInputs.createParallelGroup(Alignment.LEADING)
@@ -607,30 +601,31 @@ public class IceCubesApplet extends JApplet implements Runnable {
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
 							.addComponent(LabelI1)
-							.addComponent(lblI1Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-						.addComponent(sliderI1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+							.addComponent(lblVolValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+						.addComponent(sliderVol, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
 							.addComponent(labelI2)
-							.addComponent(lblI2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-						.addComponent(sliderI2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+							.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+						.addComponent(sliderT, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addGap(11)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 						.addComponent(labelI3)
-						.addComponent(lblI3Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(sliderI3, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addComponent(lbltValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(slidert, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 						.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblI4Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(sliderI4, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblI5, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblI5Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(sliderI5, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(429))
+						.addComponent(lblNValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(sliderN, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addGap(7)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING, false)
+						.addComponent(btnWater, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+						.addComponent(btnMilk, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
+						.addComponent(btn3, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
+						.addComponent(btn4, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE))
+					.addGap(11))
 		);
 
 		JLabel lblDatosDeEntrada = new JLabel("Datos de Entrada");
@@ -694,25 +689,29 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				panel_visualizar.setLayout(null);
 				panel_visualizar.add(panel);
 				panel_visualizar.add(panel_3);
+				panel_3.setLayout(null);
 				
 				JPanel panel_4 = new JPanel();
+				panel_4.setBounds(1, 1, 324, 31);
 				panel_4.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
 				
-				JLabel lblGrficaDeEvolucin = new JLabel("Gr\u00E1fica de Evoluci\u00F3n");
+				JLabel lblGrficaDeEvolucin = new JLabel("Gr\u00E1fica de Evoluci\u00F3n (T frente a Q)");
 				lblGrficaDeEvolucin.setFont(new Font("Tahoma", Font.PLAIN, 14));
 				panel_4.add(lblGrficaDeEvolucin);
-				GroupLayout gl_panel_3 = new GroupLayout(panel_3);
-				gl_panel_3.setHorizontalGroup(
-					gl_panel_3.createParallelGroup(Alignment.LEADING)
-						.addComponent(panel_4, GroupLayout.DEFAULT_SIZE, 326, Short.MAX_VALUE)
-				);
-				gl_panel_3.setVerticalGroup(
-					gl_panel_3.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panel_3.createSequentialGroup()
-							.addComponent(panel_4, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-							.addContainerGap(214, Short.MAX_VALUE))
-				);
-				panel_3.setLayout(gl_panel_3);
+				panel_3.add(panel_4);
+				
+				panel7 = new JPanelGrafica();
+				panel7.setBorder(new LineBorder(new Color(0, 0, 0)));
+				panel7.setBackground(Color.WHITE);
+				panel7.setBounds(1, 31, 324, 214);
+				panel_3.add(panel7);
+				panel7.setLayout(null);
+				
+				panelChart = new JPanelGrafica();
+				panelChart.setBorder(new LineBorder(new Color(0, 0, 0)));
+				panelChart.setBackground(Color.WHITE);
+				panelChart.setBounds(0, 0, 324, 214);
+				panel7.add(panelChart);
 				
 				JPanel panel_2 = new JPanel();
 				panel_2.setBorder(new LineBorder(new Color(0, 0, 0)));
@@ -726,16 +725,25 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				JLabel lblTemperaturaFludo = new JLabel("Temperatura del Flu\u00EDdo");
 				lblTemperaturaFludo.setFont(new Font("Tahoma", Font.PLAIN, 14));
 				panel_5.add(lblTemperaturaFludo);
+				
+				JLabel lblNewLabel_1 = new JLabel("0");
+				lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 40));
 				GroupLayout gl_panel_2 = new GroupLayout(panel_2);
 				gl_panel_2.setHorizontalGroup(
 					gl_panel_2.createParallelGroup(Alignment.LEADING)
-						.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 326, Short.MAX_VALUE)
+						.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 324, Short.MAX_VALUE)
+						.addGroup(Alignment.TRAILING, gl_panel_2.createSequentialGroup()
+							.addContainerGap(148, Short.MAX_VALUE)
+							.addComponent(lblNewLabel_1, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
+							.addGap(45))
 				);
 				gl_panel_2.setVerticalGroup(
 					gl_panel_2.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panel_2.createSequentialGroup()
 							.addComponent(panel_5, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-							.addContainerGap(220, Short.MAX_VALUE))
+							.addGap(62)
+							.addComponent(lblNewLabel_1, GroupLayout.PREFERRED_SIZE, 82, GroupLayout.PREFERRED_SIZE)
+							.addContainerGap(74, Short.MAX_VALUE))
 				);
 				panel_2.setLayout(gl_panel_2);
 
