@@ -85,6 +85,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	final Color waterColor = new Color(100,180,255,70);
 	final Color cubeColor = new Color(240,240,255,230);
 	
+	
 	//Control variables
 	long sleepTime = 100;	
 	boolean end = false;
@@ -92,6 +93,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	//Inputs
 	double vol, T, t;
 	int N, type;
+	int zoom = 1;
 	
 	//Thread that executed the simulation
 	private Thread flujo = null;
@@ -105,10 +107,10 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	//Panels
 	private JPanelGrafica panel_7, panelChart, panelGlass;
 
-	int supXLimit = 10;
-	int infXLimit = 0;
-	int supYLimit = 10;
-	int infYLimit = 0;
+	int supXLimit = 0;
+	int infXLimit = 2500;
+	int supYLimit = 35;
+	int infYLimit = -35;
 	
 	double gYBase = 0;
 	double gYTop = 7;
@@ -139,7 +141,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	//Labels
 	private JLabel lblCaseValue;  
 	private JLabel lblTValue, lbltValue, lblVolValue, lblPhaseValue, lblNValue;
-	private JLabel lblO1;
+	private JLabel lblO1, lblNewLabel_1;
 
 	//Sliders
 	private JSlider sliderVol, sliderT, slidert, sliderN; 
@@ -279,10 +281,13 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			model.getTime().start();
 			
 			chartTQ.replacePlot(0, model.getChartTQ(), "", Color.BLUE, 1f, true);
+			chartTQ.setRangeAxis(0, 2500*zoom, -35, 35);
+
 			this.updatePanels();
 			
 			lblCaseValue.setText("" + model.getCurrentCase());
 			lblPhaseValue.setText("" + model.getCurrentPhase());
+			lblNewLabel_1.setText("" + model.getT());
 
 			updateGlass(sliderVol.getValue());
 			
@@ -318,7 +323,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		
 		// Inicializar charts
 		chartTQ = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
-		chartTQ.setRangeAxis(0, 2500, -35, 35);
+		chartTQ.setRangeAxis(0, 2500*zoom, -35, 35);
 		
 		chartGlass = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
 		chartGlass.setRangeAxis(0, 10, -1, 8);
@@ -451,6 +456,28 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			return model.getL()*cH/model.getLo();
 		}
 		return cH;
+	}
+	
+	/**
+	 * Calculate the multiplicative zoom that must be applied to the minimum range of the
+	 * plot, to achieve that the point will be drawn inside the plot.
+	 * @param point Point that must be drawn inside the chart
+	 * @param supXLimit Superior X Limit of the plot
+	 * @param infXLimit Inferior X Limit of the plot
+	 * @param supYLimit Superior Y Limit of the plot
+	 * @param infYLimit Inferior Y Limit of the plot
+	 */
+	void getZoom(Point2D point, int supXLimit, int infXLimit, int supYLimit, int infYLimit){
+		int tempZoom = 1;
+		
+		while(point.getX() >= supXLimit*tempZoom
+		      || point.getY() >= supYLimit*tempZoom
+		      || point.getX() <= infXLimit*tempZoom
+		      || point.getY() <= infYLimit*tempZoom){
+			tempZoom = tempZoom * 2;
+		}
+		
+		zoom = tempZoom;
 	}
 	
 //	private Color getFluidColor(){
@@ -618,7 +645,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 
 		sliderVol = new JSlider();
-		sliderVol.setMinimum(12);
+		sliderVol.setMinimum(1);
 		sliderVol.setMaximum(30);
 		sliderVol.setMinorTickSpacing(1);
 		sliderVol.setValue(20);
@@ -893,7 +920,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				lblTemperaturaFludo.setFont(new Font("Tahoma", Font.PLAIN, 14));
 				panel_5.add(lblTemperaturaFludo);
 				
-				JLabel lblNewLabel_1 = new JLabel("0");
+				lblNewLabel_1 = new JLabel("0");
 				lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 40));
 				GroupLayout gl_panel_2 = new GroupLayout(panel_2);
 				gl_panel_2.setHorizontalGroup(

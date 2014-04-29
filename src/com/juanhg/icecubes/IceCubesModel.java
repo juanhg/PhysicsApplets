@@ -54,12 +54,14 @@ public class IceCubesModel extends Model {
 	static final int PHASE_4 = 4; //END PHASE
 
 	static final int WATER = 0;
-	final double K = 0.1;
+	final double K = 0.05;
 	final double lo = 2;
 
 	private int currentCase = 0;
 	private int currentPhase;
 	private Time time;
+	double lastt = 0;
+	double lastT = 0;
 
 	List<Point2D> chartTQ = new ArrayList<Point2D>();
 
@@ -89,9 +91,10 @@ public class IceCubesModel extends Model {
 		this.type = type;
 		this.N = N;
 
+		lastt = to;
 
 		this.calculateLs();
-		V = Math.pow(10*vol, 1/3);
+		V = Math.pow(10.0*vol, 1.0/3.0);
 		Vo = V;
 		M = roL*vol*10;
 		m = this.N*20;
@@ -123,12 +126,21 @@ public class IceCubesModel extends Model {
 			calculateV();
 			calculatel();
 
-			chartTQ.add(new Point2D.Double(Q,t));
+			
 			System.out.println("Q:" + Q + " t:" + t + " T: " + T);
 			System.out.println("l:" + l);
 
 			if(nextPhaseReached()){
+				chartTQ.add(new Point2D.Double(Q + lastQ, T));
 				jumpToNextPhase();
+				
+//				if(currentPhase == PHASE_4){
+//					chartTQ.remove(chartTQ.size()-1);
+//				}
+				
+			}
+			else{
+				chartTQ.add(new Point2D.Double(Q + lastQ, T));
 			}
 		}
 	}
@@ -171,7 +183,7 @@ public class IceCubesModel extends Model {
 				}
 				break;
 			case PHASE_3:
-				if(T >= Tf){
+				if(T <= Tf){
 					T = Tf;
 					return true;
 				}
@@ -238,7 +250,9 @@ public class IceCubesModel extends Model {
 
 	public void jumpToPhase(int phase) {
 		this.currentPhase = phase;
-		lastQ = Q;
+		lastQ += Q;
+		lastt = t;
+		lastT = T;
 
 		time = new Time();
 		time.start();
@@ -289,7 +303,7 @@ public class IceCubesModel extends Model {
 	}
 
 	private void calculateQ(){
-		Q = K*((double)time.getTime()) + lastQ;
+		Q = K*((double)time.getTime());
 	}
 
 	private void calculatet(){
@@ -310,7 +324,15 @@ public class IceCubesModel extends Model {
 			break;
 		case CASE_2:
 		case CASE_4:
-			t = (Q/(m*cc)) + to;
+			switch(currentPhase){
+			case PHASE_1:
+				t = (Q/(m*cc)) + to;
+				break;
+			case PHASE_3:	
+			case PHASE_2:
+				t = (Q/(m*cc)) + lastt;
+				break;
+			}
 			break;
 		}
 	}
@@ -319,19 +341,27 @@ public class IceCubesModel extends Model {
 		switch(currentCase){
 		case CASE_1:
 		case CASE_3:
-			T = (-Q/(M*CL)) + To;
+			switch(currentPhase){
+			case PHASE_1:
+				T = (-Q/(M*CL)) + To;
+				break;
+			case PHASE_2:
+			case PHASE_3:
+				T = (-Q/(M*CL)) + lastT;
+				break;
+			}
 			break;
 		case CASE_2:
 		case CASE_4:
 			switch(currentPhase){
 			case PHASE_1:
-				T = (-Q/(M*cL)) + To;
+				T = (-Q/(M*CL)) + To;
 				break;
 			case PHASE_2:
 				T = 0;
 				break;
 			case PHASE_3:
-				t = -Q/(M*cL);
+				T = -Q/(M*cL);
 				break;
 			}
 			break;
@@ -398,13 +428,13 @@ public class IceCubesModel extends Model {
 	}
 
 	private void detecCase(){
-		if(M*cL*T > (-t*m)+(M*Lc)){
+		if(M*CL*T > (-t*m*cc)+(m*Lc)){
 			currentCase = CASE_1;
 		}
-		else if(-m*cc*t > (M*cL*T + M*LL)){
+		else if(-m*cc*t > (M*CL*T + M*LL)){
 			currentCase = CASE_2;
 		}
-		else if(M*cL*T <= -t*m){
+		else if(M*CL*T >= -t*m*cc){
 			currentCase = CASE_3;
 		}
 		else{
