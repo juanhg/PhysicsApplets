@@ -37,6 +37,7 @@ import java.awt.event.ActionListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -73,37 +74,44 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 	private static final long serialVersionUID = -3017107307819023599L;
 	private final String water = "water.png";
-	
+
 	private final int WATER_TYPE = 0;
 	private final int MILK_TYPE = 1;
 	private final int COKE_TYPE = 2;
 	private final int WINE_TYPE = 3;
+	
+	boolean reset = false;
+	
+	static final int WATER = 0;
+	static final int MILK = 1;
+	static final int ORANGE = 2;
+	static final int LIMONADE = 3;
 
-	final int pistonY0 = 3;
-	final int pistonY1 = 7;
-	
-	final Color waterColor = new Color(100,180,255,70);
+	private final double archeight = 0.5;
+	private final double archwidth = 0.5;
+
+	public Color fluidColor = new Color(100,180,255,70);
 	final Color cubeColor = new Color(240,240,255,230);
-	
-	
+
+
 	//Control variables
 	long sleepTime = 100;	
 	boolean end = false;
-	
+
 	//Inputs
 	double vol, T, t;
 	int N, type;
 	int zoom = 1;
-	
+
 	//Thread that executed the simulation
 	private Thread flujo = null;
 
 	//Model
 	private IceCubesModel model;
-	
+
 	//Charts
 	private Grafica chartTQ, chartGlass;
-	
+
 	//Panels
 	private JPanelGrafica panel_7, panelChart, panelGlass;
 
@@ -111,21 +119,21 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	int infXLimit = 2500;
 	int supYLimit = 35;
 	int infYLimit = -35;
-	
+
 	double gYBase = 0;
-	double gYTop = 7;
+	double gYTop = 7.5;
 	double gXLeft = 2;
-	double gXRight = 8;
-	
-	double cX = 2.7;
+	double gXRight = 15;
+
+	double cX = 2.3;
 	double cXSeparation = 2.5;
-	
-	double cW = 2;
-	double cH = 1.2;
-	
+
+	double cW = 6;
+	double cH = 2.5;
+
 	//Images
 	BufferedImage waterImage;
-	
+
 	//Annotations
 	XYAnnotation exampleAnnotation = null;
 	XYAnnotation gBaseAnnotation = null;
@@ -141,13 +149,13 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	//Labels
 	private JLabel lblCaseValue;  
 	private JLabel lblTValue, lbltValue, lblVolValue, lblPhaseValue, lblNValue;
-	private JLabel lblO1, lblNewLabel_1;
+	private JLabel lblO1;
 
 	//Sliders
 	private JSlider sliderVol, sliderT, slidert, sliderN; 
 
 	//Buttons
-	JButton btnLaunchSimulation, btnWater, btnMilk, btn3, btn4;
+	JButton btnLaunchSimulation, btnWater, btnMilk, btnOrange, btnLimonade;
 
 
 
@@ -183,10 +191,10 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	private void sliderI1Event(){
 		if(sliderVol.getValueIsAdjusting()){
 			lblVolValue.setText(Integer.toString(sliderVol.getValue()));
-			updateGlass(sliderVol.getValue());
+			updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
 		}
 	}
-	
+
 	private void sliderI2Event(){
 		//270-330
 		if(sliderT.getValueIsAdjusting()){
@@ -195,7 +203,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			lblTValue.setText("" + staticF); 
 		}
 	}
-	
+
 	private void sliderI3Event(){
 		//1-5
 		double dynamicF;
@@ -204,24 +212,25 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			lbltValue.setText("" + dynamicF);
 		}
 	}
-	
+
 	private void sliderI4Event(){
 		//6-10
 		if(sliderN.getValueIsAdjusting()){
 			N = sliderN.getValue();
 			lblNValue.setText("" + N);
-			
-			updateGlass(sliderVol.getValue());
+
+			updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
 		}
 	}
-	
-	
+
+
 	void btnLaunchSimulationEvent(ActionEvent event){
 
 		boolean buttonsOn = false;
 
-		if(flujo != null && flujo.isAlive()) {
+		if((flujo != null && flujo.isAlive()) || (flujo != null && reset == true)) {
 			end = true;
+			reset = false;
 			buttonsOn = true;
 
 			while(flujo.isAlive()) {}
@@ -237,7 +246,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			slidert.setEnabled(buttonsOn);
 			sliderN.setEnabled(buttonsOn);
 			sliderT.setEnabled(buttonsOn);
-					
+
 			repaint();
 
 		}
@@ -254,18 +263,16 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			flujo = new Thread();
 			flujo = new Thread(this);
 			
-			model = new IceCubesModel(vol, T, t, 0, N);
-
 			sliderVol.setEnabled(buttonsOn);
 			slidert.setEnabled(buttonsOn);
 			sliderN.setEnabled(buttonsOn);
 			sliderT.setEnabled(buttonsOn);
-			
+
 			model.getTime().start();
 			flujo.start();
 		}
 	}
-	
+
 	@Override
 	public void run() {
 
@@ -279,27 +286,35 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			model.simulate();
 			//End Step of simulation
 			model.getTime().start();
-			
-			chartTQ.replacePlot(0, model.getChartTQ(), "", Color.BLUE, 1f, true);
+
+			chartTQ.replacePlot(0, model.getChartTQ(), "T", Color.RED, 2f, true);
+			chartTQ.replacePlot(1, model.getCharttQ(), "t", Color.BLUE, 2f, true);
 			chartTQ.setRangeAxis(0, 2500*zoom, -35, 35);
 
 			this.updatePanels();
-			
+
 			lblCaseValue.setText("" + model.getCurrentCase());
 			lblPhaseValue.setText("" + model.getCurrentPhase());
-			lblNewLabel_1.setText("" + model.getT());
+//			lblNewLabel_1.setText("" + model.getT());
 
-			updateGlass(sliderVol.getValue());
+			System.out.println("V: " + model.getV());
+			System.out.println("Vol: " + model.getVol());
+
+			updateGlass(model.getV());
+
+			if(model.finalPhaseReached()){
+				end = true;
+				reset = true;
+			}
 			
 			repaint();
-			
+
 			try {
 				Thread.sleep(sleepTime);
 			} catch (InterruptedException ex) {
 				Logger.getLogger(IceCubesApplet.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
-
 	}
 
 	/**
@@ -319,20 +334,22 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		Point2D [] nullArray = new Point2D[0];
 
 		//Crear modelo
-		//model = new IceCubesModel(I1, I2, I3, (int)I4, (int)I5);
-		
+		model = new IceCubesModel(vol, T, t, 0, N);
+
 		// Inicializar charts
-		chartTQ = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
+		chartTQ = new Grafica(nullArray,"", "T", "", "", true, Color.RED,1f,false);
+		chartTQ.agregarGrafica(nullArray, "t", Color.BLUE,1f,false);
+		
 		chartTQ.setRangeAxis(0, 2500*zoom, -35, 35);
-		
+
 		chartGlass = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
-		chartGlass.setRangeAxis(0, 10, -1, 8);
-		chartGlass.setAxisVisible(false);
-		
+		chartGlass.setRangeAxis(0, 18, -1, 8.5);
+		//		chartGlass.setAxisVisible(false);
+
 		//Load Images
 
 		//Set Images  
-		
+
 		drawGlass();
 
 		//Actualize panels
@@ -365,99 +382,132 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			exponent--;
 			number *= 10;
 		}
-		
+
 		return exponent;
 
 	}
-	
+
 	private void drawGlass(){
 		Stroke border = new BasicStroke(3f);
-		
-		gBaseAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,gYBase-0.5,6,1), border, Color.BLACK, waterColor);
+
+		gBaseAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,gYBase-0.5,gXRight-gXLeft,1), border, Color.BLACK, fluidColor);
 		chartGlass.setAnnotation(gBaseAnnotation);
-		
-		gTopAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,gYTop-0.5,6,1), border, Color.BLACK);
+
+		gTopAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,gYTop-0.5,gXRight-gXLeft,1), border, Color.BLACK);
 		chartGlass.setAnnotation(gTopAnnotation);
-		
+
 		gRightAnnotation = new XYLineAnnotation(gXRight, gYBase, gXRight, gYTop, border, Color.black);
 		chartGlass.setAnnotation(gRightAnnotation);
-	
+
 		gLeftAnnotation = new XYLineAnnotation(gXLeft, gYBase, gXLeft, gYTop, border, Color.black);
 		chartGlass.setAnnotation(gLeftAnnotation);
-		
-		gTopAnnotation = new XYBoxAnnotation(gXLeft, gYBase, gXRight, gYTop/2, null, null, waterColor);
+
+		gTopAnnotation = new XYBoxAnnotation(gXLeft, gYBase, gXRight, gYTop/2, null, null, fluidColor);
 		chartGlass.setAnnotation(gTopAnnotation);
-		
-		updateGlass(sliderVol.getValue());
-		
-		
+
+		updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
+
+
 	}
-	
+
 	private void updateGlass(double vol){
-		double surface = vol*gYTop/33;
+		double surface = vol;
 		Stroke border = new BasicStroke(3f);
 		
+		chartGlass.deleteAnnotation(gBaseAnnotation);
+		gBaseAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,gYBase-0.5,gXRight-gXLeft,1), border, Color.BLACK, fluidColor);
+		chartGlass.setAnnotation(gBaseAnnotation);
+
 		chartGlass.deleteAnnotation(gTopAnnotation);
-		gTopAnnotation = new XYBoxAnnotation(gXLeft, gYBase, gXRight, surface, null, null, waterColor);
+		gTopAnnotation = new XYBoxAnnotation(gXLeft, gYBase, gXRight, surface, null, null, fluidColor);
 		chartGlass.setAnnotation(gTopAnnotation);
-		
+
 		chartGlass.deleteAnnotation(gSurfaceAnnotation);
-		gSurfaceAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,(surface)-0.5,6,1), border, Color.BLACK, waterColor);
+		gSurfaceAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,(surface)-0.5,gXRight-gXLeft,1), border, Color.BLACK, fluidColor);
 		chartGlass.setAnnotation(gSurfaceAnnotation);
-		
+
 		chartGlass.deleteAnnotation(cube1Annotation);
 		chartGlass.deleteAnnotation(cube2Annotation);
 		chartGlass.deleteAnnotation(cube3Annotation);
 		chartGlass.deleteAnnotation(cube4Annotation);
-		
-		if(N >= 1){
-			
-			cube1Annotation = new XYShapeAnnotation(new Rectangle2D.Double(cX, surface-1, getCubeW(), getCubeH()), border, Color.BLACK, cubeColor);
-			chartGlass.setAnnotation(cube1Annotation);
-			
-			if(N>= 2){
-				
-				cube2Annotation = new XYShapeAnnotation(new Rectangle2D.Double(cX + cXSeparation, surface-1,  getCubeW(), getCubeH()), border, Color.BLACK, cubeColor);
-				chartGlass.setAnnotation(cube2Annotation);
-				
-				if(N>= 3){
-					
-					cube3Annotation = new XYShapeAnnotation(new Rectangle2D.Double(cX, surface - 1 - cXSeparation/1.5,  getCubeW(), getCubeH()), border, Color.BLACK, cubeColor);
-					chartGlass.setAnnotation(cube3Annotation);
-					
-					if(N>=4){
-						
-						cube4Annotation = new XYShapeAnnotation(new Rectangle2D.Double(cX + cXSeparation, surface - 1 - cXSeparation/1.5,  getCubeW(), getCubeH()), border, Color.BLACK, cubeColor);
-						chartGlass.setAnnotation(cube4Annotation);
+
+		if(sliderVol.getValue() >= 10){
+			if(N >= 1){
+
+				cube1Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX, surface-3, getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+				chartGlass.setAnnotation(cube1Annotation);
+
+				if(N>= 2){
+
+					cube2Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX + getCubeW()+0.4, surface-3,  getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+					chartGlass.setAnnotation(cube2Annotation);
+
+					if(N>= 3){
+
+						cube3Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX, surface - 3.2 - getCubeH(),  getCubeW(), getCubeH(), archeight, archwidth), border, Color.BLACK, cubeColor);
+						chartGlass.setAnnotation(cube3Annotation);
+
+						if(N>=4){
+
+							cube4Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX + getCubeW()+0.4, surface - 3.2 - getCubeH(),  getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+							chartGlass.setAnnotation(cube4Annotation);
+						}
 					}
 				}
 			}
 		}
-		
+		else{
+			if(N >= 1){
+
+				cube1Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX, gYBase, getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+				chartGlass.setAnnotation(cube1Annotation);
+
+				if(N>= 2){
+
+					cube2Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX + getCubeW()+0.4, gYBase,  getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+					chartGlass.setAnnotation(cube2Annotation);
+
+					if(N>= 3){
+
+						cube3Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX, gYBase + getCubeH(),  getCubeW(), getCubeH(), archeight, archwidth), border, Color.BLACK, cubeColor);
+						chartGlass.setAnnotation(cube3Annotation);
+
+						if(N>=4){
+
+							cube4Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX + getCubeW()+0.4, gYBase + getCubeH(),  getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+							chartGlass.setAnnotation(cube4Annotation);
+						}
+					}
+				}
+			}
+		}
+
+
+
 		repaint();
 	}
-	
-	
+
+
 	private void updatePanels(){
 		panelChart.actualizaGrafica(chartTQ);
 		panelGlass.actualizaGrafica(chartGlass);
 	}
-	
-	
+
+
 	public double getCubeW(){
-		if(model != null){
-			return model.getL()*cW/model.getLo();
-		}
-		return cW;
+				if(model != null){
+					return model.getL()*cW/model.getLo();
+				}
+				return cW;
 	}
-	
+
 	public double getCubeH(){
-		if(model != null){
-			return model.getL()*cH/model.getLo();
-		}
-		return cH;
+				if(model != null){
+					return model.getL()*cH/model.getLo();
+				}
+				return cH;
 	}
-	
+
 	/**
 	 * Calculate the multiplicative zoom that must be applied to the minimum range of the
 	 * plot, to achieve that the point will be drawn inside the plot.
@@ -469,28 +519,28 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	 */
 	void getZoom(Point2D point, int supXLimit, int infXLimit, int supYLimit, int infYLimit){
 		int tempZoom = 1;
-		
+
 		while(point.getX() >= supXLimit*tempZoom
-		      || point.getY() >= supYLimit*tempZoom
-		      || point.getX() <= infXLimit*tempZoom
-		      || point.getY() <= infYLimit*tempZoom){
+				|| point.getY() >= supYLimit*tempZoom
+				|| point.getX() <= infXLimit*tempZoom
+				|| point.getY() <= infYLimit*tempZoom){
 			tempZoom = tempZoom * 2;
 		}
-		
+
 		zoom = tempZoom;
 	}
-	
-//	private Color getFluidColor(){
-//		switch(type){
-//		case WATER_TYPE:
-//			break;
-//		case MILK_TYPE:
-//			break;
-//		case WINE_TYPE:
-//			break;
-//		}
-//	}
-	
+
+	//	private Color getFluidColor(){
+	//		switch(type){
+	//		case WATER_TYPE:
+	//			break;
+	//		case MILK_TYPE:
+	//			break;
+	//		case WINE_TYPE:
+	//			break;
+	//		}
+	//	}
+
 	private void autogeneratedCode(){
 		JPanel panel_control = new JPanel();
 		panel_control.setBorder(new CompoundBorder(new EtchedBorder(EtchedBorder.RAISED, null, null), new BevelBorder(BevelBorder.RAISED, null, null, null, null)));
@@ -516,106 +566,106 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		lblCaseValue = new JLabel();
 		lblCaseValue.setText("0");
 		lblCaseValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
+
 		JLabel lblO2 = new JLabel("Fase:");
 		lblO2.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
+
 		lblPhaseValue = new JLabel();
 		lblPhaseValue.setText("0");
 		lblPhaseValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
+
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
-			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addGap(22)
-							.addComponent(lblO1, GroupLayout.DEFAULT_SIZE, 88, Short.MAX_VALUE)
-							.addPreferredGap(ComponentPlacement.RELATED))
-						.addGroup(Alignment.TRAILING, gl_panelOutputs.createSequentialGroup()
-							.addContainerGap()
-							.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)
-							.addGap(37)))
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
-						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblCaseValue, GroupLayout.DEFAULT_SIZE, 13, Short.MAX_VALUE)
-							.addGap(3))
-						.addGroup(Alignment.LEADING, gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED)))
-					.addGap(173))
-		);
+						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+										.addGap(22)
+										.addComponent(lblO1, GroupLayout.DEFAULT_SIZE, 88, Short.MAX_VALUE)
+										.addPreferredGap(ComponentPlacement.RELATED))
+										.addGroup(Alignment.TRAILING, gl_panelOutputs.createSequentialGroup()
+												.addContainerGap()
+												.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)
+												.addGap(37)))
+												.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+														.addGroup(gl_panelOutputs.createSequentialGroup()
+																.addComponent(lblCaseValue, GroupLayout.DEFAULT_SIZE, 13, Short.MAX_VALUE)
+																.addGap(3))
+																.addGroup(Alignment.LEADING, gl_panelOutputs.createSequentialGroup()
+																		.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
+																		.addPreferredGap(ComponentPlacement.RELATED)))
+																		.addGap(173))
+				);
 		gl_panelOutputs.setVerticalGroup(
-			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblO1)
-						.addComponent(lblCaseValue))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-					.addGap(40))
-		);
+						.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.UNRELATED)
+						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+								.addComponent(lblO1)
+								.addComponent(lblCaseValue))
+								.addPreferredGap(ComponentPlacement.UNRELATED)
+								.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+										.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+										.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+										.addGap(40))
+				);
 		panelOutputs.setLayout(gl_panelOutputs);
 
 		JPanel panelLicense = new JPanel();
 		panelLicense.setBorder(new LineBorder(new Color(0, 0, 0)));
-		
+
 		JPanel panel_6 = new JPanel();
 		panel_6.setBorder(new LineBorder(new Color(0, 0, 0)));
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);
 		gl_panel_control.setHorizontalGroup(
-			gl_panel_control.createParallelGroup(Alignment.TRAILING)
+				gl_panel_control.createParallelGroup(Alignment.TRAILING)
 				.addGroup(Alignment.LEADING, gl_panel_control.createSequentialGroup()
-					.addContainerGap()
-					.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
-						.addComponent(panelOutputs, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
-						.addComponent(panel_6, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
-						.addComponent(panelLicense, GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
-					.addContainerGap())
-		);
+						.addContainerGap()
+						.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
+								.addComponent(panelOutputs, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
+								.addComponent(panel_6, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
+								.addComponent(panelLicense, GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
+								.addContainerGap())
+				);
 		gl_panel_control.setVerticalGroup(
-			gl_panel_control.createParallelGroup(Alignment.LEADING)
+				gl_panel_control.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel_control.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 225, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 112, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 80, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panelLicense, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-		);
-		
-				btnLaunchSimulation = new JButton("Iniciar");
-				btnLaunchSimulation.setFont(new Font("Tahoma", Font.PLAIN, 16));
-				btnLaunchSimulation.addActionListener(new ActionListener() {
-					public void actionPerformed(ActionEvent event) {
-						btnLaunchSimulationEvent(event);
-					}
-				});
+						.addContainerGap()
+						.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 225, GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 112, GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.UNRELATED)
+						.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 80, GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(panelLicense, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+				);
+
+		btnLaunchSimulation = new JButton("Iniciar");
+		btnLaunchSimulation.setFont(new Font("Tahoma", Font.PLAIN, 16));
+		btnLaunchSimulation.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent event) {
+				btnLaunchSimulationEvent(event);
+			}
+		});
 		GroupLayout gl_panel_6 = new GroupLayout(panel_6);
 		gl_panel_6.setHorizontalGroup(
-			gl_panel_6.createParallelGroup(Alignment.LEADING)
+				gl_panel_6.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel_6.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(btnLaunchSimulation, GroupLayout.DEFAULT_SIZE, 324, Short.MAX_VALUE)
-					.addContainerGap())
-		);
+						.addContainerGap()
+						.addComponent(btnLaunchSimulation, GroupLayout.DEFAULT_SIZE, 324, Short.MAX_VALUE)
+						.addContainerGap())
+				);
 		gl_panel_6.setVerticalGroup(
-			gl_panel_6.createParallelGroup(Alignment.LEADING)
+				gl_panel_6.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panel_6.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(78, Short.MAX_VALUE))
-		);
+						.addContainerGap()
+						.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
+						.addContainerGap(78, Short.MAX_VALUE))
+				);
 		panel_6.setLayout(gl_panel_6);
 
 		JLabel lblNewLabel = new JLabel("GNU GENERAL PUBLIC LICENSE");
@@ -679,13 +729,13 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				sliderI3Event();
 			}
 		});
-		
+
 		JLabel lblI4 = new JLabel("N\u00BA de Cubitos");
 		lblI4.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
+
 		lblNValue = new JLabel("1");
 		lblNValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
+
 		sliderN = new JSlider();
 		sliderN.setMinimum(1);
 		sliderN.setMaximum(4);
@@ -696,122 +746,142 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		});
 		sliderN.setValue(1);
 		sliderN.setMinorTickSpacing(1);
-		
+
 		waterImage = loadImage(water);
 		btnWater = new JButton(new ImageIcon(waterImage));
 		btnWater.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				btnWater.setEnabled(false);
 				btnMilk.setEnabled(true);
-				btn3.setEnabled(true);
-				btn4.setEnabled(true);
+				btnOrange.setEnabled(true);
+				btnLimonade.setEnabled(true);
+				
+				type = WATER;
+				
+				fluidColor = new Color(100,180,255,70);
+				updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
 			}
 		});
-		
+
 		btnMilk = new JButton("Milk");
 		btnMilk.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				btnWater.setEnabled(true);
 				btnMilk.setEnabled(false);
-				btn3.setEnabled(true);
-				btn4.setEnabled(true);
+				btnOrange.setEnabled(true);
+				btnLimonade.setEnabled(true);
+				
+				type = MILK;
+				
+				fluidColor = new Color(255,255,255,255);
+				updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
 			}
 		});
-		
-		btn3 = new JButton("Coke");
-		btn3.addActionListener(new ActionListener() {
+
+		btnOrange = new JButton("Coke");
+		btnOrange.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				btnWater.setEnabled(true);
 				btnMilk.setEnabled(true);
-				btn3.setEnabled(false);
-				btn4.setEnabled(true);
+				btnOrange.setEnabled(false);
+				btnLimonade.setEnabled(true);
+				
+				type = ORANGE;
+				
+				fluidColor = new Color(225,150,0,220);
+				updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
 			}
 		});
-		
-		btn4 = new JButton("New button");
-		btn4.addActionListener(new ActionListener() {
+
+		btnLimonade = new JButton("New button");
+		btnLimonade.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				btnWater.setEnabled(true);
 				btnMilk.setEnabled(true);
-				btn3.setEnabled(true);
-				btn4.setEnabled(false);
+				btnOrange.setEnabled(true);
+				btnLimonade.setEnabled(false);
+				
+				type = LIMONADE;
+				
+				fluidColor = new Color(225,225,0,150);
+				updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
 			}
 		});
 
 		GroupLayout gl_panelInputs = new GroupLayout(panelInputs);
 		gl_panelInputs.setHorizontalGroup(
-			gl_panelInputs.createParallelGroup(Alignment.TRAILING)
+				gl_panelInputs.createParallelGroup(Alignment.TRAILING)
 				.addComponent(panelTitle, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
 				.addGroup(gl_panelInputs.createSequentialGroup()
-					.addContainerGap(23, Short.MAX_VALUE)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
-						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addComponent(btnWater, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(btnMilk, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(btn3, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(btn4, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
-							.addGap(8))
-						.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-							.addGroup(gl_panelInputs.createSequentialGroup()
-								.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING, false)
-									.addComponent(labelI3, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-									.addComponent(LabelI1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-									.addComponent(labelI2, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE))
-								.addGap(18)
-								.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-									.addComponent(lblVolValue, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
-									.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-									.addComponent(lbltValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE))
-								.addGap(18)
-								.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING, false)
-									.addComponent(sliderVol, 0, 0, Short.MAX_VALUE)
-									.addComponent(sliderT, 0, 0, Short.MAX_VALUE)
-									.addComponent(slidert, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)))
-							.addGroup(gl_panelInputs.createSequentialGroup()
-								.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
-								.addGap(18)
-								.addComponent(lblNValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-								.addGap(18)
-								.addComponent(sliderN, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))))
-					.addGap(15))
-		);
+						.addContainerGap(23, Short.MAX_VALUE)
+						.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
+								.addGroup(gl_panelInputs.createSequentialGroup()
+										.addComponent(btnWater, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(ComponentPlacement.RELATED)
+										.addComponent(btnMilk, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(ComponentPlacement.RELATED)
+										.addComponent(btnOrange, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+										.addPreferredGap(ComponentPlacement.RELATED)
+										.addComponent(btnLimonade, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+										.addGap(8))
+										.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+												.addGroup(gl_panelInputs.createSequentialGroup()
+														.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING, false)
+																.addComponent(labelI3, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+																.addComponent(LabelI1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+																.addComponent(labelI2, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE))
+																.addGap(18)
+																.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+																		.addComponent(lblVolValue, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
+																		.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+																		.addComponent(lbltValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE))
+																		.addGap(18)
+																		.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING, false)
+																				.addComponent(sliderVol, 0, 0, Short.MAX_VALUE)
+																				.addComponent(sliderT, 0, 0, Short.MAX_VALUE)
+																				.addComponent(slidert, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)))
+																				.addGroup(gl_panelInputs.createSequentialGroup()
+																						.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
+																						.addGap(18)
+																						.addComponent(lblNValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+																						.addGap(18)
+																						.addComponent(sliderN, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))))
+																						.addGap(15))
+				);
 		gl_panelInputs.setVerticalGroup(
-			gl_panelInputs.createParallelGroup(Alignment.LEADING)
+				gl_panelInputs.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelInputs.createSequentialGroup()
-					.addComponent(panelTitle, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addGap(18)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-							.addComponent(LabelI1)
-							.addComponent(lblVolValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-						.addComponent(sliderVol, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-							.addComponent(labelI2)
-							.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-						.addComponent(sliderT, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(11)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(labelI3)
-						.addComponent(lbltValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(slidert, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblNValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(sliderN, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(7)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING, false)
-						.addComponent(btnWater, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addComponent(btnMilk, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
-						.addComponent(btn3, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
-						.addComponent(btn4, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE))
-					.addGap(11))
-		);
+						.addComponent(panelTitle, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addGap(18)
+						.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+										.addComponent(LabelI1)
+										.addComponent(lblVolValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+										.addComponent(sliderVol, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+										.addPreferredGap(ComponentPlacement.RELATED)
+										.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+												.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+														.addComponent(labelI2)
+														.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+														.addComponent(sliderT, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+														.addGap(11)
+														.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+																.addComponent(labelI3)
+																.addComponent(lbltValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+																.addComponent(slidert, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+																.addPreferredGap(ComponentPlacement.UNRELATED)
+																.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+																		.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+																		.addComponent(lblNValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+																		.addComponent(sliderN, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+																		.addGap(7)
+																		.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING, false)
+																				.addComponent(btnWater, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+																				.addComponent(btnMilk, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
+																				.addComponent(btnOrange, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
+																				.addComponent(btnLimonade, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE))
+																				.addGap(11))
+				);
 
 		JLabel lblDatosDeEntrada = new JLabel("Datos de Entrada");
 		lblDatosDeEntrada.setFont(new Font("Tahoma", Font.PLAIN, 14));
@@ -825,121 +895,87 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 		GroupLayout groupLayout = new GroupLayout(getContentPane());
 		groupLayout.setHorizontalGroup(
-			groupLayout.createParallelGroup(Alignment.LEADING)
+				groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(Alignment.TRAILING, groupLayout.createSequentialGroup()
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panel_visualizar, GroupLayout.PREFERRED_SIZE, 694, GroupLayout.PREFERRED_SIZE)
-					.addGap(156))
-		);
+						.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+						.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addPreferredGap(ComponentPlacement.RELATED)
+						.addComponent(panel_visualizar, GroupLayout.PREFERRED_SIZE, 694, GroupLayout.PREFERRED_SIZE)
+						.addGap(156))
+				);
 		groupLayout.setVerticalGroup(
-			groupLayout.createParallelGroup(Alignment.TRAILING)
+				groupLayout.createParallelGroup(Alignment.TRAILING)
 				.addGroup(Alignment.LEADING, groupLayout.createSequentialGroup()
-					.addGap(12)
-					.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING, false)
-						.addComponent(panel_visualizar, Alignment.LEADING, 0, 0, Short.MAX_VALUE)
-						.addComponent(panel_control, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 494, Short.MAX_VALUE))
-					.addContainerGap(84, Short.MAX_VALUE))
-		);
-				
-				JPanel panel = new JPanel();
-				panel.setBorder(new LineBorder(new Color(0, 0, 0)));
-				panel.setBounds(0, 0, 368, 494);
-				panel.setBackground(Color.WHITE);
-				
-				JPanel panel_1 = new JPanel();
-				panel_1.setBounds(1, 1, 366, 31);
-				panel_1.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
-				
-				JLabel lblSimulacin = new JLabel("Simulaci\u00F3n");
-				lblSimulacin.setFont(new Font("Tahoma", Font.PLAIN, 14));
-				panel_1.add(lblSimulacin);
-				
-				JPanel panel_3 = new JPanel();
-				panel_3.setBorder(new LineBorder(new Color(0, 0, 0)));
-				panel_3.setBackground(Color.WHITE);
-				panel_3.setBounds(368, 0, 326, 245);
-				panel_visualizar.setLayout(null);
-				panel_visualizar.add(panel);
-				panel.setLayout(null);
-				panel.add(panel_1);
-				
-				panel_7 = new JPanelGrafica();
-				panel_7.setBackground(Color.WHITE);
-				panel_7.setBounds(1, 31, 366, 463);
-				panel.add(panel_7);
-				
-				panelGlass = new JPanelGrafica();
-				panelGlass.setBackground(Color.WHITE);
-				GroupLayout gl_panel_7 = new GroupLayout(panel_7);
-				gl_panel_7.setHorizontalGroup(
-					gl_panel_7.createParallelGroup(Alignment.LEADING)
-						.addComponent(panelGlass, GroupLayout.DEFAULT_SIZE, 366, Short.MAX_VALUE)
+						.addGap(12)
+						.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING, false)
+								.addComponent(panel_visualizar, Alignment.LEADING, 0, 0, Short.MAX_VALUE)
+								.addComponent(panel_control, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 494, Short.MAX_VALUE))
+								.addContainerGap(84, Short.MAX_VALUE))
 				);
-				gl_panel_7.setVerticalGroup(
-					gl_panel_7.createParallelGroup(Alignment.LEADING)
-						.addComponent(panelGlass, GroupLayout.DEFAULT_SIZE, 463, Short.MAX_VALUE)
+
+		JPanel panel = new JPanel();
+		panel.setBorder(new LineBorder(new Color(0, 0, 0)));
+		panel.setBounds(0, 0, 368, 494);
+		panel.setBackground(Color.WHITE);
+
+		JPanel panel_1 = new JPanel();
+		panel_1.setBounds(1, 1, 366, 31);
+		panel_1.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
+
+		JLabel lblSimulacin = new JLabel("Simulaci\u00F3n");
+		lblSimulacin.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		panel_1.add(lblSimulacin);
+
+		JPanel panel_3 = new JPanel();
+		panel_3.setBorder(new LineBorder(new Color(0, 0, 0)));
+		panel_3.setBackground(Color.WHITE);
+		panel_3.setBounds(368, 0, 326, 494);
+		panel_visualizar.setLayout(null);
+		panel_visualizar.add(panel);
+		panel.setLayout(null);
+		panel.add(panel_1);
+
+		panel_7 = new JPanelGrafica();
+		panel_7.setBackground(Color.WHITE);
+		panel_7.setBounds(1, 31, 366, 463);
+		panel.add(panel_7);
+
+		panelGlass = new JPanelGrafica();
+		panelGlass.setBackground(Color.WHITE);
+		GroupLayout gl_panel_7 = new GroupLayout(panel_7);
+		gl_panel_7.setHorizontalGroup(
+				gl_panel_7.createParallelGroup(Alignment.LEADING)
+				.addComponent(panelGlass, GroupLayout.DEFAULT_SIZE, 366, Short.MAX_VALUE)
 				);
-				panel_7.setLayout(gl_panel_7);
-				panel_visualizar.add(panel_3);
-				panel_3.setLayout(null);
-				
-				JPanel panel_4 = new JPanel();
-				panel_4.setBounds(1, 1, 324, 31);
-				panel_4.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
-				
-				JLabel lblGrficaDeEvolucin = new JLabel("Gr\u00E1fica de Evoluci\u00F3n (T frente a Q)");
-				lblGrficaDeEvolucin.setFont(new Font("Tahoma", Font.PLAIN, 14));
-				panel_4.add(lblGrficaDeEvolucin);
-				panel_3.add(panel_4);
-				
-				JPanel panel7 = new JPanel();
-				panel7.setBorder(new LineBorder(new Color(0, 0, 0)));
-				panel7.setBackground(Color.WHITE);
-				panel7.setBounds(1, 31, 324, 214);
-				panel_3.add(panel7);
-				panel7.setLayout(null);
-				
-				panelChart = new JPanelGrafica();
-				panelChart.setBorder(new LineBorder(new Color(0, 0, 0)));
-				panelChart.setBackground(Color.WHITE);
-				panelChart.setBounds(0, 0, 324, 214);
-				panel7.add(panelChart);
-				
-				JPanel panel_2 = new JPanel();
-				panel_2.setBorder(new LineBorder(new Color(0, 0, 0)));
-				panel_2.setBackground(Color.WHITE);
-				panel_2.setBounds(368, 243, 326, 251);
-				panel_visualizar.add(panel_2);
-				
-				JPanel panel_5 = new JPanel();
-				panel_5.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
-				
-				JLabel lblTemperaturaFludo = new JLabel("Temperatura del Flu\u00EDdo");
-				lblTemperaturaFludo.setFont(new Font("Tahoma", Font.PLAIN, 14));
-				panel_5.add(lblTemperaturaFludo);
-				
-				lblNewLabel_1 = new JLabel("0");
-				lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 40));
-				GroupLayout gl_panel_2 = new GroupLayout(panel_2);
-				gl_panel_2.setHorizontalGroup(
-					gl_panel_2.createParallelGroup(Alignment.LEADING)
-						.addComponent(panel_5, GroupLayout.DEFAULT_SIZE, 324, Short.MAX_VALUE)
-						.addGroup(Alignment.TRAILING, gl_panel_2.createSequentialGroup()
-							.addContainerGap(148, Short.MAX_VALUE)
-							.addComponent(lblNewLabel_1, GroupLayout.PREFERRED_SIZE, 131, GroupLayout.PREFERRED_SIZE)
-							.addGap(45))
+		gl_panel_7.setVerticalGroup(
+				gl_panel_7.createParallelGroup(Alignment.LEADING)
+				.addComponent(panelGlass, GroupLayout.DEFAULT_SIZE, 463, Short.MAX_VALUE)
 				);
-				gl_panel_2.setVerticalGroup(
-					gl_panel_2.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panel_2.createSequentialGroup()
-							.addComponent(panel_5, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-							.addGap(62)
-							.addComponent(lblNewLabel_1, GroupLayout.PREFERRED_SIZE, 82, GroupLayout.PREFERRED_SIZE)
-							.addContainerGap(74, Short.MAX_VALUE))
-				);
-				panel_2.setLayout(gl_panel_2);
+		panel_7.setLayout(gl_panel_7);
+		panel_visualizar.add(panel_3);
+		panel_3.setLayout(null);
+
+		JPanel panel_4 = new JPanel();
+		panel_4.setBounds(1, 1, 324, 31);
+		panel_4.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
+
+		JLabel lblGrficaDeEvolucin = new JLabel("Gr\u00E1fica de Evoluci\u00F3n (T frente a Q)");
+		lblGrficaDeEvolucin.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		panel_4.add(lblGrficaDeEvolucin);
+		panel_3.add(panel_4);
+
+		JPanel panel7 = new JPanel();
+		panel7.setBorder(new LineBorder(new Color(0, 0, 0)));
+		panel7.setBackground(Color.WHITE);
+		panel7.setBounds(1, 31, 324, 463);
+		panel_3.add(panel7);
+		panel7.setLayout(null);
+
+		panelChart = new JPanelGrafica();
+		panelChart.setBorder(new LineBorder(new Color(0, 0, 0)));
+		panelChart.setBackground(Color.WHITE);
+		panelChart.setBounds(0, 0, 324, 462);
+		panel7.add(panelChart);
 
 		getContentPane().setLayout(groupLayout);
 	}

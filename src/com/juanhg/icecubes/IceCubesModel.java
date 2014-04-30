@@ -54,8 +54,18 @@ public class IceCubesModel extends Model {
 	static final int PHASE_4 = 4; //END PHASE
 
 	static final int WATER = 0;
-	final double K = 0.05;
+	static final int MILK = 1;
+	static final int ORANGE = 2;
+	static final int LIMONADE = 3;
+	final double K = 0.2;
 	final double lo = 2;
+
+	final double Lc = 80;
+	final double cc = 0.5;
+	final double Cc = 1;
+	final double roA = 1;
+	final double roc = 0.917;
+	double roCong;
 
 	private int currentCase = 0;
 	private int currentPhase;
@@ -64,6 +74,7 @@ public class IceCubesModel extends Model {
 	double lastT = 0;
 
 	List<Point2D> chartTQ = new ArrayList<Point2D>();
+	List<Point2D> charttQ = new ArrayList<Point2D>();
 
 	//Constants
 
@@ -73,8 +84,8 @@ public class IceCubesModel extends Model {
 	private int type, N;
 
 	//Calculated parameters
-	private double V, M, m, l, roc, Lc, cc, Cc, roA, roL, LL, cL, CL; 
-	private double Vo, roCong, Tf, Q, to, To, duration;
+	private double V, M, m, l, roL, LL, cL, CL; 
+	private double Vo, Tf, Q, to, To, duration;
 	private double lastQ = 0;
 
 	//Aux
@@ -90,19 +101,16 @@ public class IceCubesModel extends Model {
 		this.To = T;
 		this.type = type;
 		this.N = N;
+		this.l = lo;
 
 		lastt = to;
 
 		this.calculateLs();
-		V = Math.pow(10.0*vol, 1.0/3.0);
+		m = this.N*20;
+		V = Math.pow(10*vol + m/roc, 1.0/3.0);
 		Vo = V;
 		M = roL*vol*10;
-		m = this.N*20;
-		roc = 0.917;
-		Lc = 80;
-		cc = 0.5;
-		Cc = 1;
-		roA = 1;
+
 
 		currentPhase = PHASE_1;
 		time = new Time();
@@ -118,7 +126,7 @@ public class IceCubesModel extends Model {
 	 */
 	@Override
 	public void simulate() {
-		
+
 		if(!finalPhaseReached()){
 			calculateQ();
 			calculatet();
@@ -126,21 +134,25 @@ public class IceCubesModel extends Model {
 			calculateV();
 			calculatel();
 
-			
-			System.out.println("Q:" + Q + " t:" + t + " T: " + T);
-			System.out.println("l:" + l);
+
+			//			System.out.println("Q:" + Q + " t:" + t + " T: " + T);
+			//			System.out.println("l:" + l);
 
 			if(nextPhaseReached()){
 				chartTQ.add(new Point2D.Double(Q + lastQ, T));
+				charttQ.add(new Point2D.Double(Q + lastQ, t));
 				jumpToNextPhase();
-				
-//				if(currentPhase == PHASE_4){
-//					chartTQ.remove(chartTQ.size()-1);
-//				}
-				
+
+				if(currentPhase == PHASE_4){
+					charttQ.remove(charttQ.size()-1);
+					charttQ.remove(charttQ.size()-1);
+					charttQ.add(new Point2D.Double(lastQ, T));
+				}
+
 			}
 			else{
 				chartTQ.add(new Point2D.Double(Q + lastQ, T));
+				charttQ.add(new Point2D.Double(Q + lastQ, t));
 			}
 		}
 	}
@@ -267,6 +279,27 @@ public class IceCubesModel extends Model {
 			cL = 0.5;
 			CL = 1;
 			roCong = 0.917;
+			break;
+		case MILK:
+			roL = 1.017;
+			roCong = 0.934;
+			cL = 0.47;
+			CL = 0.9;
+			LL = 69; 
+			break;
+		case ORANGE:
+			roL = 1.038;
+			roCong = 0.955;
+			cL = 0.42;
+			CL = 0.93;
+			LL = 70.937;
+			break;
+		case LIMONADE:
+			roL = 1.11;
+			roCong = 1.027;
+			cL = 0.41;
+			CL = 0.95;
+			LL = 73.8;
 			break;
 		}
 	}
@@ -403,10 +436,10 @@ public class IceCubesModel extends Model {
 				V = Vo;
 				break;
 			case PHASE_2:
-				temp1 = Math.pow(10*vol + m/roA, 1/3);
-				temp2 = Math.pow(10*vol + m/roc, 1/3);
+				temp1 = Math.pow(10*vol + m/roA, 1.0/3.0);
+				temp2 = Math.pow(10*vol + m/roc, 1.0/3.0);
 				temp3 = (temp1 - temp2)/duration;
-				V = temp3*tiempo + Math.pow(10*vol + m/roc, 1/3);
+				V = temp3*tiempo + Math.pow(10.0*vol + m/roc, 1.0/3.0);
 				break;
 			}
 			break;
@@ -417,10 +450,10 @@ public class IceCubesModel extends Model {
 				V = Vo;
 				break;
 			case PHASE_2:
-				temp1 = Math.pow((M/roCong) + m/roA, 1/3);
-				temp2 = Math.pow(10*vol + m/roc, 1/3);
+				temp1 = Math.pow((M/roCong) + m/roA, 1.0/3.0);
+				temp2 = Math.pow(10*vol + m/roc, 1.0/3.0);
 				temp3 = (temp1 - temp2)/duration;
-				V = temp3*tiempo + Math.pow(10*vol + m/roc, 1/3);
+				V = temp3*tiempo + Math.pow(10*vol + m/roc, 1.0/3.0);
 				break;
 			}
 			break;
@@ -441,20 +474,24 @@ public class IceCubesModel extends Model {
 			currentCase = CASE_4;
 		}
 	}
-	
+
 	public Point2D [] getChartTQ(){
 		return chartTQ.toArray(new Point2D[chartTQ.size()]);
 	}
+
+	public Point2D [] getCharttQ(){
+		return charttQ.toArray(new Point2D[charttQ.size()]);
+	}
 	
-	private boolean finalPhaseReached(){
+	public boolean finalPhaseReached(){
 		if(currentPhase == PHASE_4){
 			return true;
 		}
 		return false;
 	}
 
-	
-	
+
+
 	public double getT() {
 		return T;
 	}
@@ -464,7 +501,7 @@ public class IceCubesModel extends Model {
 		return t;
 	}
 
-	
+
 	public double getLo() {
 		return lo;
 	}
@@ -474,6 +511,9 @@ public class IceCubesModel extends Model {
 		return V;
 	}
 
+	public double getVol(){
+		return Math.pow(V, 3.0)/10.0;
+	}
 
 	public double getL() {
 		return l;
@@ -485,7 +525,7 @@ public class IceCubesModel extends Model {
 	public int getCurrentPhase() {
 		return currentPhase;
 	}
-	
+
 	public int getCurrentCase() {
 		return currentCase;
 	}
@@ -493,5 +533,12 @@ public class IceCubesModel extends Model {
 
 	public Time getTime() {
 		return time;
+	}
+
+	public static double getV(double vol, double N){
+		double m = N*20;
+		double roc = 0.917;
+		double V = Math.pow(10.0*vol + m/roc, 1.0/3.0);
+		return V;
 	}
 }
