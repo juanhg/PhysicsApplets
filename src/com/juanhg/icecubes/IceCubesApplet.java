@@ -74,24 +74,28 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 	private static final long serialVersionUID = -3017107307819023599L;
 	private final String water = "water.png";
+	private final String milk = "milk.png";
+	private final String orange = "orange.png";
+	private final String lemonade = "lemonade.png";
 
-	private final int WATER_TYPE = 0;
-	private final int MILK_TYPE = 1;
-	private final int COKE_TYPE = 2;
-	private final int WINE_TYPE = 3;
-	
+
 	boolean reset = false;
-	
+
 	static final int WATER = 0;
 	static final int MILK = 1;
 	static final int ORANGE = 2;
-	static final int LIMONADE = 3;
+	static final int LEMONADE = 3;
 
 	private final double archeight = 0.5;
 	private final double archwidth = 0.5;
 
+	int precision = 6;
+
 	public Color fluidColor = new Color(100,180,255,70);
 	final Color cubeColor = new Color(240,240,255,230);
+	double fluidTotalIncrement = 90;
+	double fluidMidIncrement = 50;
+	int increment = 0;
 
 
 	//Control variables
@@ -101,7 +105,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	//Inputs
 	double vol, T, t;
 	int N, type;
-	int zoom = 1;
+	double zoom = 1;
 
 	//Thread that executed the simulation
 	private Thread flujo = null;
@@ -115,8 +119,8 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	//Panels
 	private JPanelGrafica panel_7, panelChart, panelGlass;
 
-	int supXLimit = 0;
-	int infXLimit = 2500;
+	int supXLimit = 2000;
+	int infXLimit = -1;
 	int supYLimit = 35;
 	int infYLimit = -35;
 
@@ -132,7 +136,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	double cH = 2.5;
 
 	//Images
-	BufferedImage waterImage;
+	BufferedImage waterImage, milkImage, orangeImage, lemonadeImage;
 
 	//Annotations
 	XYAnnotation exampleAnnotation = null;
@@ -147,15 +151,15 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	XYAnnotation cube4Annotation = null;
 
 	//Labels
-	private JLabel lblCaseValue;  
-	private JLabel lblTValue, lbltValue, lblVolValue, lblPhaseValue, lblNValue;
+	private JLabel lblO1Value;  
+	private JLabel lblTValue, lbltValue, lblVolValue, lblO2Value, lblNValue;
 	private JLabel lblO1;
 
 	//Sliders
 	private JSlider sliderVol, sliderT, slidert, sliderN; 
 
 	//Buttons
-	JButton btnLaunchSimulation, btnWater, btnMilk, btnOrange, btnLimonade;
+	JButton btnLaunchSimulation, btnWater, btnMilk, btnOrange, btnlemonade;
 
 
 
@@ -192,6 +196,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		if(sliderVol.getValueIsAdjusting()){
 			lblVolValue.setText(Integer.toString(sliderVol.getValue()));
 			updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
+			repaint();
 		}
 	}
 
@@ -220,6 +225,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			lblNValue.setText("" + N);
 
 			updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
+			repaint();
 		}
 	}
 
@@ -230,11 +236,12 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 		if((flujo != null && flujo.isAlive()) || (flujo != null && reset == true)) {
 			end = true;
+			increment = 0;
+			
+			while(flujo.isAlive()) {}
 			reset = false;
 			buttonsOn = true;
-
-			while(flujo.isAlive()) {}
-
+			
 			model.getTime().stop();
 
 			this.readInputs();
@@ -251,18 +258,20 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 		}
 		else{
-
+						
 			buttonsOn = false;
 			btnLaunchSimulation.setText("Finalizar");
 
 			//Obtain values from interface
 			this.readInputs();
 			this.initSimulation();
+			
+			//Crear modelo
+			model = new IceCubesModel(vol, T, t, 0, N);
 
 			//Initializes and runs the thread (Run())
-			flujo = new Thread();
 			flujo = new Thread(this);
-			
+
 			sliderVol.setEnabled(buttonsOn);
 			slidert.setEnabled(buttonsOn);
 			sliderN.setEnabled(buttonsOn);
@@ -277,6 +286,8 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	public void run() {
 
 		end = false;
+		Point2D [] arrayChartTQ = null;
+		Point2D [] arrayCharttQ = null;
 
 
 		while(!end){
@@ -287,25 +298,41 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			//End Step of simulation
 			model.getTime().start();
 
-			chartTQ.replacePlot(0, model.getChartTQ(), "T", Color.RED, 2f, true);
-			chartTQ.replacePlot(1, model.getCharttQ(), "t", Color.BLUE, 2f, true);
-			chartTQ.setRangeAxis(0, 2500*zoom, -35, 35);
+			arrayChartTQ = model.getChartTQ();
+			arrayCharttQ = model.getCharttQ();
 
-			this.updatePanels();
+			chartTQ.replacePlot(0, arrayChartTQ, "T", Color.RED, 2f, true);
+			chartTQ.replacePlot(1, arrayCharttQ, "t", Color.BLUE, 2f, true);
 
-			lblCaseValue.setText("" + model.getCurrentCase());
-			lblPhaseValue.setText("" + model.getCurrentPhase());
-//			lblNewLabel_1.setText("" + model.getT());
+			zoom = 1;
+			double zoom1 = 1;
+			double zoom2 = 2;
 
-			System.out.println("V: " + model.getV());
-			System.out.println("Vol: " + model.getVol());
+			if(arrayChartTQ.length >= 1){
+			}
+			if(arrayCharttQ.length >= 1){
+				zoom2 = getZoom(arrayCharttQ[arrayCharttQ.length-1], supXLimit, infXLimit, supYLimit, infYLimit);
+			}
 
-			updateGlass(model.getV());
+			if(zoom1 > zoom2){ zoom = zoom1;}
+			else{ zoom = zoom2;}
+
+
+			chartTQ.setRangeAxis(infXLimit, supXLimit*zoom, infYLimit, supYLimit);
+
+			lblO1Value.setText(dToString(model.getT(), precision));
+			lblO2Value.setText(dToString(model.gett(), precision));
 
 			if(model.finalPhaseReached()){
-				end = true;
 				reset = true;
+				end = true;
 			}
+			else{
+				fluidColor = getFluidColor();
+				System.out.println(fluidColor.getRed() + " " + fluidColor.getGreen() + " " + fluidColor.getGreen());
+			}
+			updateGlass(model.getV());
+			this.updatePanels();
 			
 			repaint();
 
@@ -333,22 +360,17 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 		Point2D [] nullArray = new Point2D[0];
 
-		//Crear modelo
-		model = new IceCubesModel(vol, T, t, 0, N);
-
 		// Inicializar charts
 		chartTQ = new Grafica(nullArray,"", "T", "", "", true, Color.RED,1f,false);
 		chartTQ.agregarGrafica(nullArray, "t", Color.BLUE,1f,false);
-		
-		chartTQ.setRangeAxis(0, 2500*zoom, -35, 35);
+
+		chartTQ.setRangeAxis(infXLimit, supXLimit, infYLimit, supYLimit);
 
 		chartGlass = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
 		chartGlass.setRangeAxis(0, 18, -1, 8.5);
 		//		chartGlass.setAxisVisible(false);
 
 		//Load Images
-
-		//Set Images  
 
 		drawGlass();
 
@@ -413,7 +435,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	private void updateGlass(double vol){
 		double surface = vol;
 		Stroke border = new BasicStroke(3f);
-		
+
 		chartGlass.deleteAnnotation(gBaseAnnotation);
 		gBaseAnnotation = new XYShapeAnnotation(new Ellipse2D.Double(gXLeft,gYBase-0.5,gXRight-gXLeft,1), border, Color.BLACK, fluidColor);
 		chartGlass.setAnnotation(gBaseAnnotation);
@@ -431,25 +453,25 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		chartGlass.deleteAnnotation(cube3Annotation);
 		chartGlass.deleteAnnotation(cube4Annotation);
 
-		if(sliderVol.getValue() >= 10){
+		if(sliderVol.getValue() >= 10 || N <= 2){
 			if(N >= 1){
 
-				cube1Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX, surface-3, getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+				cube1Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX, surface-2, getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
 				chartGlass.setAnnotation(cube1Annotation);
 
 				if(N>= 2){
 
-					cube2Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX + getCubeW()+0.4, surface-3,  getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+					cube2Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX + getCubeW()+0.4, surface-2,  getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
 					chartGlass.setAnnotation(cube2Annotation);
 
 					if(N>= 3){
 
-						cube3Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX, surface - 3.2 - getCubeH(),  getCubeW(), getCubeH(), archeight, archwidth), border, Color.BLACK, cubeColor);
+						cube3Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX, surface - 2.2 - getCubeH(),  getCubeW(), getCubeH(), archeight, archwidth), border, Color.BLACK, cubeColor);
 						chartGlass.setAnnotation(cube3Annotation);
 
 						if(N>=4){
 
-							cube4Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX + getCubeW()+0.4, surface - 3.2 - getCubeH(),  getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
+							cube4Annotation = new XYShapeAnnotation(new RoundRectangle2D.Double(cX + getCubeW()+0.4, surface - 2.2 - getCubeH(),  getCubeW(), getCubeH(), archeight,archwidth), border, Color.BLACK, cubeColor);
 							chartGlass.setAnnotation(cube4Annotation);
 						}
 					}
@@ -481,10 +503,6 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				}
 			}
 		}
-
-
-
-		repaint();
 	}
 
 
@@ -495,17 +513,17 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 
 	public double getCubeW(){
-				if(model != null){
-					return model.getL()*cW/model.getLo();
-				}
-				return cW;
+		if(model != null){
+			return model.getL()*cW/model.getLo();
+		}
+		return cW;
 	}
 
 	public double getCubeH(){
-				if(model != null){
-					return model.getL()*cH/model.getLo();
-				}
-				return cH;
+		if(model != null){
+			return model.getL()*cH/model.getLo();
+		}
+		return cH;
 	}
 
 	/**
@@ -517,7 +535,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	 * @param supYLimit Superior Y Limit of the plot
 	 * @param infYLimit Inferior Y Limit of the plot
 	 */
-	void getZoom(Point2D point, int supXLimit, int infXLimit, int supYLimit, int infYLimit){
+	public double getZoom(Point2D point, int supXLimit, int infXLimit, int supYLimit, int infYLimit){
 		int tempZoom = 1;
 
 		while(point.getX() >= supXLimit*tempZoom
@@ -527,19 +545,70 @@ public class IceCubesApplet extends JApplet implements Runnable {
 			tempZoom = tempZoom * 2;
 		}
 
-		zoom = tempZoom;
+		return tempZoom;
 	}
 
-	//	private Color getFluidColor(){
-	//		switch(type){
-	//		case WATER_TYPE:
-	//			break;
-	//		case MILK_TYPE:
-	//			break;
-	//		case WINE_TYPE:
-	//			break;
-	//		}
-	//	}
+	private Color getFluidColor(){
+
+		Color color = null;
+		int currentCase = model.getCurrentCase();
+		int currentPhase = model.getCurrentPhase();
+		double finalIncrement = 0;
+
+		if(currentPhase == 2){
+			switch(currentCase){
+			case 2:
+				finalIncrement = fluidTotalIncrement;
+				break;
+			case 4:
+				finalIncrement = fluidMidIncrement;
+				break;
+			}
+			double time = model.getSecond();
+			increment = (int) (time*finalIncrement/(model.getDuration()/1000.0));
+			System.out.println(model.getDuration());
+		}
+
+		int R, G, B;
+		switch(type){
+		case WATER:
+			R = 100 + increment/2;
+			G = 180 + increment/2;
+			if(R > 255){ R = 255;}
+			if(G > 255){ G = 255;}
+			color = new Color(R,G,255,70);
+			break;
+		case MILK:
+			color = new Color(255,255,255,255);
+			break;
+		case ORANGE:
+			G = 150 + increment/2;
+			B = 0 + increment/2;
+			if(G > 255){ G = 255;}
+			if(B > 255){ B = 255;}
+			color = new Color(225,G,B,220);
+			break;
+		case LEMONADE:
+			G = 225 + increment/2;
+			B = 0 + increment/2;
+			if(G > 255){ G = 255;}
+			if(B > 255){ B = 255;}
+			color = fluidColor = new Color(225,G,B,150);
+			break;
+		}
+
+		return color;
+	}
+
+	public String dToString(double value, int precision){
+		String x = String.valueOf(value);
+		if(x.length() > precision){
+			return (x.substring(0,precision));
+		}
+		else{
+			return x;
+		}
+	}
 
 	private void autogeneratedCode(){
 		JPanel panel_control = new JPanel();
@@ -560,19 +629,19 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		labelOutputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panelTitleOutputs.add(labelOutputData);
 
-		lblO1 = new JLabel("Caso:");
+		lblO1 = new JLabel("T:");
 		lblO1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblCaseValue = new JLabel();
-		lblCaseValue.setText("0");
-		lblCaseValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblO1Value = new JLabel();
+		lblO1Value.setText("0");
+		lblO1Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		JLabel lblO2 = new JLabel("Fase:");
+		JLabel lblO2 = new JLabel("t:");
 		lblO2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblPhaseValue = new JLabel();
-		lblPhaseValue.setText("0");
-		lblPhaseValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblO2Value = new JLabel();
+		lblO2Value.setText("0");
+		lblO2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
@@ -590,10 +659,10 @@ public class IceCubesApplet extends JApplet implements Runnable {
 												.addGap(37)))
 												.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
 														.addGroup(gl_panelOutputs.createSequentialGroup()
-																.addComponent(lblCaseValue, GroupLayout.DEFAULT_SIZE, 13, Short.MAX_VALUE)
+																.addComponent(lblO1Value, GroupLayout.DEFAULT_SIZE, 13, Short.MAX_VALUE)
 																.addGap(3))
 																.addGroup(Alignment.LEADING, gl_panelOutputs.createSequentialGroup()
-																		.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
+																		.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
 																		.addPreferredGap(ComponentPlacement.RELATED)))
 																		.addGap(173))
 				);
@@ -604,11 +673,11 @@ public class IceCubesApplet extends JApplet implements Runnable {
 						.addPreferredGap(ComponentPlacement.UNRELATED)
 						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 								.addComponent(lblO1)
-								.addComponent(lblCaseValue))
+								.addComponent(lblO1Value))
 								.addPreferredGap(ComponentPlacement.UNRELATED)
 								.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 										.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-										.addComponent(lblPhaseValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+										.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
 										.addGap(40))
 				);
 		panelOutputs.setLayout(gl_panelOutputs);
@@ -754,57 +823,64 @@ public class IceCubesApplet extends JApplet implements Runnable {
 				btnWater.setEnabled(false);
 				btnMilk.setEnabled(true);
 				btnOrange.setEnabled(true);
-				btnLimonade.setEnabled(true);
-				
+				btnlemonade.setEnabled(true);
+
 				type = WATER;
-				
+
 				fluidColor = new Color(100,180,255,70);
 				updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
+				repaint();
 			}
 		});
 
-		btnMilk = new JButton("Milk");
+		milkImage = loadImage(milk);
+		btnMilk = new JButton(new ImageIcon(milkImage));
 		btnMilk.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				btnWater.setEnabled(true);
 				btnMilk.setEnabled(false);
 				btnOrange.setEnabled(true);
-				btnLimonade.setEnabled(true);
-				
+				btnlemonade.setEnabled(true);
+
 				type = MILK;
-				
+
 				fluidColor = new Color(255,255,255,255);
 				updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
+				repaint();
 			}
 		});
 
-		btnOrange = new JButton("Coke");
+		orangeImage = loadImage(orange);
+		btnOrange = new JButton(new ImageIcon(orangeImage));
 		btnOrange.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				btnWater.setEnabled(true);
 				btnMilk.setEnabled(true);
 				btnOrange.setEnabled(false);
-				btnLimonade.setEnabled(true);
-				
+				btnlemonade.setEnabled(true);
+
 				type = ORANGE;
-				
+
 				fluidColor = new Color(225,150,0,220);
 				updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
+				repaint();
 			}
 		});
 
-		btnLimonade = new JButton("New button");
-		btnLimonade.addActionListener(new ActionListener() {
+		lemonadeImage = loadImage(lemonade);
+		btnlemonade = new JButton(new ImageIcon(lemonadeImage));
+		btnlemonade.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				btnWater.setEnabled(true);
 				btnMilk.setEnabled(true);
 				btnOrange.setEnabled(true);
-				btnLimonade.setEnabled(false);
-				
-				type = LIMONADE;
-				
+				btnlemonade.setEnabled(false);
+
+				type = LEMONADE;
+
 				fluidColor = new Color(225,225,0,150);
 				updateGlass(IceCubesModel.getV(sliderVol.getValue(), sliderN.getValue()));
+				repaint();
 			}
 		});
 
@@ -822,7 +898,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 										.addPreferredGap(ComponentPlacement.RELATED)
 										.addComponent(btnOrange, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
 										.addPreferredGap(ComponentPlacement.RELATED)
-										.addComponent(btnLimonade, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+										.addComponent(btnlemonade, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
 										.addGap(8))
 										.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 												.addGroup(gl_panelInputs.createSequentialGroup()
@@ -879,7 +955,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 																				.addComponent(btnWater, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
 																				.addComponent(btnMilk, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
 																				.addComponent(btnOrange, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE)
-																				.addComponent(btnLimonade, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE))
+																				.addComponent(btnlemonade, GroupLayout.DEFAULT_SIZE, 57, Short.MAX_VALUE))
 																				.addGap(11))
 				);
 

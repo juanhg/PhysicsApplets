@@ -133,8 +133,15 @@ public class IceCubesModel extends Model {
 			calculateT();
 			calculateV();
 			calculatel();
-
-
+			
+			if(T <= Tf ){
+				T = Tf;
+				
+			}
+			if(t >= Tf){
+				t = Tf;
+			}
+		
 			//			System.out.println("Q:" + Q + " t:" + t + " T: " + T);
 			//			System.out.println("l:" + l);
 
@@ -142,13 +149,6 @@ public class IceCubesModel extends Model {
 				chartTQ.add(new Point2D.Double(Q + lastQ, T));
 				charttQ.add(new Point2D.Double(Q + lastQ, t));
 				jumpToNextPhase();
-
-				if(currentPhase == PHASE_4){
-					charttQ.remove(charttQ.size()-1);
-					charttQ.remove(charttQ.size()-1);
-					charttQ.add(new Point2D.Double(lastQ, T));
-				}
-
 			}
 			else{
 				chartTQ.add(new Point2D.Double(Q + lastQ, T));
@@ -530,9 +530,23 @@ public class IceCubesModel extends Model {
 		return currentCase;
 	}
 
+	public double getDuration() {
+		return duration;
+	}
+
 
 	public Time getTime() {
 		return time;
+	}
+	
+	public double getSecond(){
+		double tiempo;
+		
+		time.pause();
+		tiempo = (double)time.getTime()/1000.0;
+		time.start();
+		
+		return tiempo;
 	}
 
 	public static double getV(double vol, double N){
