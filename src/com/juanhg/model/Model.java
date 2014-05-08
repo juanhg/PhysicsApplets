@@ -68,7 +68,11 @@ public abstract class Model {
 		}
 		return false;
 	}
-
+	
+	public void incrementCurrentTime(){
+		currentTime += dt;
+	}
+ 
 	public int getActualSimulation() {
 		return actualSimulation;
 	}

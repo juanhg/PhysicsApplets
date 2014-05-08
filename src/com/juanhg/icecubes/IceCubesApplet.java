@@ -151,7 +151,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 	XYAnnotation cube4Annotation = null;
 
 	//Labels
-	private JLabel lblO1Value;  
+	private JLabel lblO1Value, lblVValue;  
 	private JLabel lblTValue, lbltValue, lblVolValue, lblO2Value, lblNValue;
 	private JLabel lblO1;
 
@@ -322,6 +322,7 @@ public class IceCubesApplet extends JApplet implements Runnable {
 
 			lblO1Value.setText(dToString(model.getT(), precision));
 			lblO2Value.setText(dToString(model.gett(), precision));
+			lblVValue.setText(dToString(model.getV(), precision+4));
 
 			if(model.finalPhaseReached()){
 				reset = true;
@@ -642,44 +643,57 @@ public class IceCubesApplet extends JApplet implements Runnable {
 		lblO2Value = new JLabel();
 		lblO2Value.setText("0");
 		lblO2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		JLabel lblV = new JLabel("V:");
+		lblV.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblVValue = new JLabel();
+		lblVValue.setText("0");
+		lblVValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
-				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-										.addGap(22)
-										.addComponent(lblO1, GroupLayout.DEFAULT_SIZE, 88, Short.MAX_VALUE)
-										.addPreferredGap(ComponentPlacement.RELATED))
-										.addGroup(Alignment.TRAILING, gl_panelOutputs.createSequentialGroup()
-												.addContainerGap()
-												.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)
-												.addGap(37)))
-												.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
-														.addGroup(gl_panelOutputs.createSequentialGroup()
-																.addComponent(lblO1Value, GroupLayout.DEFAULT_SIZE, 13, Short.MAX_VALUE)
-																.addGap(3))
-																.addGroup(Alignment.LEADING, gl_panelOutputs.createSequentialGroup()
-																		.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
-																		.addPreferredGap(ComponentPlacement.RELATED)))
-																		.addGap(173))
-				);
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addGap(22)
+							.addComponent(lblO1, GroupLayout.DEFAULT_SIZE, 88, Short.MAX_VALUE)
+							.addPreferredGap(ComponentPlacement.RELATED))
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 57, GroupLayout.PREFERRED_SIZE)
+							.addGap(37)))
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addComponent(lblO1Value, GroupLayout.DEFAULT_SIZE, 52, Short.MAX_VALUE)
+							.addGap(3))
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(lblV, GroupLayout.PREFERRED_SIZE, 44, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 110, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap())
+		);
 		gl_panelOutputs.setVerticalGroup(
-				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-						.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.UNRELATED)
-						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-								.addComponent(lblO1)
-								.addComponent(lblO1Value))
-								.addPreferredGap(ComponentPlacement.UNRELATED)
-								.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-										.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-										.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-										.addGap(40))
-				);
+					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+						.addComponent(lblO1)
+						.addComponent(lblO1Value)
+						.addComponent(lblV, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+						.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+					.addGap(40))
+		);
 		panelOutputs.setLayout(gl_panelOutputs);
 
 		JPanel panelLicense = new JPanel();
