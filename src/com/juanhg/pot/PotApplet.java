@@ -83,7 +83,8 @@ public class PotApplet extends JApplet implements Runnable {
 	boolean end = false;
 	
 	//Inputs
-	double I1, I2, I3, I4, I5;
+	double T, V, mo, m, mc;
+	int type;
 	
 	//Thread that executed the simulation
 	private Thread flujo = null;
@@ -128,18 +129,22 @@ public class PotApplet extends JApplet implements Runnable {
 	XYAnnotation UAnnotation = null;
 	XYAnnotation PAnnotation = null;
 	XYAnnotation VAnnotation = null;
-	
-
-	//Labels
-	private JLabel lblO1Value;  
-	private JLabel lblI2Value, lblI3Value, lblI1Value, lblO2Value, lblI4Value, lblI5Value;
-	private JLabel lblO1, lblO3Value, lblO3;
+	private JLabel lblVValue, lblMoValue, lblTValue, lblWValue, lblMValue, lblTypeValue, lblMcValue;
+	private JLabel lblQValue, lblQ, lblT, lblV, lblM, lblMo, lblMc, lblType;
 
 	//Sliders
-	private JSlider sliderI1, sliderI2, sliderI3, sliderI4, sliderI5; 
+	private JSlider sliderT, sliderV, sliderMo, sliderM, sliderType, sliderMc; 
 
 	//Buttons
-	JButton btnLaunchSimulation;
+	JButton btnLaunchSimulation, btn1, btn2, btn3;
+	private JLabel lblT2;
+	private JLabel lblTOValue;
+	private JLabel lblU;
+	private JLabel lblP;
+	private JLabel lblVO;
+	private JLabel lblVOValue;
+	private JLabel lblPValue;
+	private JLabel lblUValue;
 
 
 	public PotApplet() {}
@@ -166,46 +171,68 @@ public class PotApplet extends JApplet implements Runnable {
 
 		//Obtain values from interface
 		this.readInputs();
-		this.initSimulation();	
+		this.initSimulation();
+		btn1function();
 	}
 
 
 
 	private void sliderI1Event(){
-		if(sliderI1.getValueIsAdjusting()){
-			lblI1Value.setText(Integer.toString(sliderI1.getValue()));
+		if(sliderT.getValueIsAdjusting()){
+			lblTValue.setText(Integer.toString(sliderT.getValue()));
 		}
 	}
 	
 	private void sliderI2Event(){
-		if(sliderI2.getValueIsAdjusting()){
-			double staticF;
-			staticF = (double) sliderI2.getValue();
-			lblI2Value.setText("" + staticF); 
+		if(sliderV.getValueIsAdjusting()){
+			int staticF;
+			staticF = (int) sliderV.getValue();
+			lblVValue.setText("" + staticF); 
 		}
 	}
 	
 	private void sliderI3Event(){
-		double dynamicF;
-		if(sliderI3.getValueIsAdjusting()){
-			dynamicF = (double) sliderI3.getValue();
-			lblI3Value.setText("" + dynamicF);
+		int dynamicF;
+		if(sliderMo.getValueIsAdjusting()){
+			dynamicF = (int) sliderMo.getValue();
+			lblMoValue.setText("" + dynamicF);
 		}
 	}
 	
 	private void sliderI4Event(){
-		double dynamicF;
-		if(sliderI4.getValueIsAdjusting()){
-			dynamicF = (double) sliderI4.getValue();
-			lblI4Value.setText("" + dynamicF);
+		int dynamicF;
+		if(sliderM.getValueIsAdjusting()){
+			dynamicF = (int) sliderM.getValue();
+			lblMValue.setText("" + dynamicF);
 		}
 	}
 
 	private void sliderI5Event(){
-		double dynamicF;
-		if(sliderI5.getValueIsAdjusting()){
-			dynamicF = (double) sliderI5.getValue();
-			lblI5Value.setText("" + dynamicF);
+		int dynamicF;
+		if(sliderType.getValueIsAdjusting()){
+			dynamicF = (int) sliderType.getValue();
+			switch(dynamicF){
+			case 1:
+				lblTypeValue.setText("Madera");
+				break;
+			case 2:
+				lblTypeValue.setText("Carbón");
+				break;
+			case 3:
+				lblTypeValue.setText("Gasolina");
+				break;
+			case 4:
+				lblTypeValue.setText("Gas");
+				break;
+			}
+		}
+	}
+	
+	private void sliderI6Event(){
+		int dynamicF;
+		if(sliderMc.getValueIsAdjusting()){
+			dynamicF = (int) sliderMc.getValue();
+			lblMcValue.setText("" + dynamicF);
 		}
 	}
 	
@@ -227,11 +254,12 @@ public class PotApplet extends JApplet implements Runnable {
 
 			btnLaunchSimulation.setText("Iniciar");
 
-			sliderI1.setEnabled(buttonsOn);
-			sliderI3.setEnabled(buttonsOn);
-			sliderI4.setEnabled(buttonsOn);
-			sliderI5.setEnabled(buttonsOn);
-			sliderI2.setEnabled(buttonsOn);
+			sliderT.setEnabled(buttonsOn);
+			sliderMo.setEnabled(buttonsOn);
+			sliderM.setEnabled(buttonsOn);
+			sliderType.setEnabled(buttonsOn);
+			sliderV.setEnabled(buttonsOn);
+			sliderMc.setEnabled(buttonsOn);
 					
 			repaint();
 
@@ -249,11 +277,12 @@ public class PotApplet extends JApplet implements Runnable {
 			flujo = new Thread();
 			flujo = new Thread(this);
 
-			sliderI1.setEnabled(buttonsOn);
-			sliderI3.setEnabled(buttonsOn);
-			sliderI4.setEnabled(buttonsOn);
-			sliderI5.setEnabled(buttonsOn);
-			sliderI2.setEnabled(buttonsOn);
+			sliderT.setEnabled(buttonsOn);
+			sliderMo.setEnabled(buttonsOn);
+			sliderM.setEnabled(buttonsOn);
+			sliderType.setEnabled(buttonsOn);
+			sliderV.setEnabled(buttonsOn);
+			sliderMc.setEnabled(buttonsOn);
 			model.simulate();
 			
 			flujo.start();
@@ -262,19 +291,27 @@ public class PotApplet extends JApplet implements Runnable {
 	
 	@Override
 	public void run() {
-
+		int precision = 7;
 		end = false;
 
 
 		while(!end){
 			
 			//Begin step of simulation
-			//model.simulate();
+			model.simulate();
 			++currentSimulation;
 			//End Step of simulation
 			
 			chartPot.deleteAnnotation(fireAnnotation);
 			fireAnnotation = chartPot.setImageAtPoint(getFireImage(), xFire, yFire);
+			
+			
+			lblPValue.setText(dToString(model.getP(), precision));
+			lblWValue.setText(dToString(model.getW(), precision));
+			lblVOValue.setText(dToString(model.getV(), precision));
+			lblTOValue.setText(dToString(model.getT(), precision));
+			lblQValue.setText(dToString(model.getQ(), precision));
+			lblUValue.setText(dToString(model.getU(), precision));
 			
 			this.updatePanels();
 			repaint();
@@ -293,11 +330,22 @@ public class PotApplet extends JApplet implements Runnable {
 	 * in the variable of the class 
 	 */
 	private void readInputs(){
-		I1 = sliderI1.getValue();
-		I2 = sliderI2.getValue();
-		I5 = sliderI5.getValue();
-		I3 = sliderI3.getValue();
-		I4 = sliderI4.getValue();
+		T = sliderT.getValue();
+		V = sliderV.getValue();
+		type = sliderType.getValue();
+		mo = sliderMo.getValue();
+		m = sliderM.getValue();
+		mc = sliderMc.getValue();
+	}
+	
+	public String dToString(double value, int precision){
+		String x = String.valueOf(value);
+		if(x.length() > precision){
+			return (x.substring(0,precision));
+		}
+		else{
+			return x;
+		}
 	}
 
 	//Init the elements of the simulation
@@ -306,17 +354,28 @@ public class PotApplet extends JApplet implements Runnable {
 		Point2D [] nullArray = new Point2D[0];
 
 		//Crear modelo
-		model = new PotModel(I1, I2, I3, I4, (int) I5);
+		model = new PotModel(V, T, mo, m, type, mc);
+		
+		if(!btn1.isEnabled()){
+			model.setCurrentPhase(1);
+		}
+		if(!btn2.isEnabled()){
+			model.setCurrentPhase(2);
+		}
+		if(!btn3.isEnabled()){
+			model.setCurrentPhase(3);
+		}
 		
 		// Inicializar charts
 		chartPot = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
 		chartPot.setRangeAxis(infXLimit, supXLimit, infYLimit, supYLimit);
 		
-		ValueAxis yAxis = new SymbolAxis("", new String[]{"","W","","Q","","T","","U","","P","","V"});
+		ValueAxis yAxis = new SymbolAxis("", new String[]{"","W","","Q","","T","","U","","P","","V", ""});
 		Font font = new Font("", Font.PLAIN, 30);
 		chartChart = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,1f,false);
-		chartChart.setDomainAxis(yAxis, font);
 		chartChart.setRangeAxis(chartsInfXLimit, chartsSupXLimit, chartsInfYLimit, chartsSupYLimit);
+		chartChart.setDomainAxis(yAxis, font);
+
 		
 		//Load Images
 		exampleImage = loadImage(example);
@@ -409,6 +468,39 @@ public class PotApplet extends JApplet implements Runnable {
 		}
 	}
 	
+	public void btn1function(){
+		if(model == null){
+			model.setCurrentPhase(1);
+		}
+		
+		btn1.setEnabled(false);
+		btn2.setEnabled(true);
+		btn3.setEnabled(true);
+		
+		lblT.setEnabled(true);
+		lblTValue.setEnabled(true);
+		sliderT.setEnabled(true);
+		
+		lblV.setEnabled(false);
+		lblVValue.setEnabled(false);
+		sliderV.setEnabled(false);
+		
+		lblMo.setEnabled(true);
+		lblMoValue.setEnabled(true);
+		sliderMo.setEnabled(true);
+		
+		lblM.setEnabled(true);
+		lblMValue.setEnabled(true);
+		sliderM.setEnabled(true);
+		
+		lblType.setEnabled(false);
+		lblTypeValue.setEnabled(false);
+		sliderType.setEnabled(false);
+		
+		lblMc.setEnabled(false);
+		lblMcValue.setEnabled(false);
+		sliderMc.setEnabled(false);
+	}
 	
 	private void autogeneratedCode(){
 		JPanel panel_control = new JPanel();
@@ -428,69 +520,117 @@ public class PotApplet extends JApplet implements Runnable {
 		JLabel labelOutputData = new JLabel("Datos de la Simulaci\u00F3n");
 		labelOutputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panelTitleOutputs.add(labelOutputData);
-
-		lblO1 = new JLabel("O1:");
-		lblO1.setFont(new Font("Tahoma", Font.PLAIN, 14));
-
-		lblO1Value = new JLabel();
-		lblO1Value.setText("0");
-		lblO1Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel lblO2 = new JLabel("O2:");
-		lblO2.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		JLabel lblW = new JLabel("W:");
+		lblW.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblO2Value = new JLabel();
-		lblO2Value.setText("0");
-		lblO2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblWValue = new JLabel();
+		lblWValue.setText("-");
+		lblWValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblO3 = new JLabel("O3:");
-		lblO3.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblQ = new JLabel("Q:");
+		lblQ.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblO3Value = new JLabel();
-		lblO3Value.setText("0");
-		lblO3Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblQValue = new JLabel();
+		lblQValue.setText("-");
+		lblQValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblT2 = new JLabel("T:");
+		lblT2.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblTOValue = new JLabel();
+		lblTOValue.setText("-");
+		lblTOValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblU = new JLabel("U:");
+		lblU.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblP = new JLabel("P:");
+		lblP.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblVO = new JLabel("V:");
+		lblVO.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblVOValue = new JLabel();
+		lblVOValue.setText("-");
+		lblVOValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblPValue = new JLabel();
+		lblPValue.setText("-");
+		lblPValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblUValue = new JLabel();
+		lblUValue.setText("-");
+		lblUValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
+				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 352, Short.MAX_VALUE)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-					.addGap(22)
+					.addGap(31)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
+								.addComponent(lblQ, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(lblW, GroupLayout.PREFERRED_SIZE, 43, GroupLayout.PREFERRED_SIZE))
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addComponent(lblWValue, GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)
+								.addComponent(lblQValue, GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)))
+						.addGroup(Alignment.LEADING, gl_panelOutputs.createSequentialGroup()
+							.addComponent(lblT2, GroupLayout.PREFERRED_SIZE, 43, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(lblTOValue, GroupLayout.PREFERRED_SIZE, 90, GroupLayout.PREFERRED_SIZE)))
+					.addGap(18)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 84, GroupLayout.PREFERRED_SIZE)
-							.addGap(26)
-							.addComponent(lblO3Value, GroupLayout.DEFAULT_SIZE, 103, Short.MAX_VALUE))
+							.addComponent(lblU, GroupLayout.PREFERRED_SIZE, 43, GroupLayout.PREFERRED_SIZE)
+							.addGap(6)
+							.addComponent(lblUValue, GroupLayout.PREFERRED_SIZE, 90, GroupLayout.PREFERRED_SIZE))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(lblO1, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-									.addGap(26))
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
-									.addGap(29)))
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(lblO2Value, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(lblO1Value, GroupLayout.PREFERRED_SIZE, 103, GroupLayout.PREFERRED_SIZE))))
-					.addGap(109))
+							.addComponent(lblP, GroupLayout.PREFERRED_SIZE, 43, GroupLayout.PREFERRED_SIZE)
+							.addGap(6)
+							.addComponent(lblPValue, GroupLayout.PREFERRED_SIZE, 90, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addComponent(lblVO, GroupLayout.PREFERRED_SIZE, 43, GroupLayout.PREFERRED_SIZE)
+							.addGap(6)
+							.addComponent(lblVOValue, GroupLayout.PREFERRED_SIZE, 90, GroupLayout.PREFERRED_SIZE)))
+					.addGap(25))
 		);
 		gl_panelOutputs.setVerticalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
 					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblO1Value)
-						.addComponent(lblO1))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblO3Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-					.addGap(79))
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addComponent(lblU, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblUValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+							.addGap(6)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addComponent(lblP, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblPValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+							.addGap(6)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addComponent(lblVO, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblVOValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)))
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(lblW, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+									.addPreferredGap(ComponentPlacement.RELATED)
+									.addComponent(lblQ, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(lblWValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+									.addPreferredGap(ComponentPlacement.RELATED)
+									.addComponent(lblQValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)))
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addComponent(lblT2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblTOValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))))
+					.addContainerGap())
 		);
 		panelOutputs.setLayout(gl_panelOutputs);
 
@@ -501,25 +641,25 @@ public class PotApplet extends JApplet implements Runnable {
 		panel_6.setBorder(new LineBorder(new Color(0, 0, 0)));
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);
 		gl_panel_control.setHorizontalGroup(
-			gl_panel_control.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_panel_control.createSequentialGroup()
+			gl_panel_control.createParallelGroup(Alignment.LEADING)
+				.addGroup(Alignment.TRAILING, gl_panel_control.createSequentialGroup()
 					.addContainerGap()
-					.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
-						.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
-						.addComponent(panelOutputs, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addComponent(panel_6, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
-						.addComponent(panelLicense, GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
+					.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
+						.addComponent(panelInputs, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
+						.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+						.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
+						.addComponent(panelLicense, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
 					.addContainerGap())
 		);
 		gl_panel_control.setVerticalGroup(
 			gl_panel_control.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panel_control.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 213, GroupLayout.PREFERRED_SIZE)
+					.addComponent(panelInputs, GroupLayout.DEFAULT_SIZE, 292, Short.MAX_VALUE)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 129, GroupLayout.PREFERRED_SIZE)
+					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 108, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 146, Short.MAX_VALUE)
+					.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(panelLicense, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 					.addGap(24))
@@ -534,63 +674,65 @@ public class PotApplet extends JApplet implements Runnable {
 				});
 		GroupLayout gl_panel_6 = new GroupLayout(panel_6);
 		gl_panel_6.setHorizontalGroup(
-			gl_panel_6.createParallelGroup(Alignment.TRAILING)
-				.addGroup(Alignment.LEADING, gl_panel_6.createSequentialGroup()
+			gl_panel_6.createParallelGroup(Alignment.LEADING)
+				.addGroup(Alignment.TRAILING, gl_panel_6.createSequentialGroup()
 					.addContainerGap()
 					.addComponent(btnLaunchSimulation, GroupLayout.DEFAULT_SIZE, 324, Short.MAX_VALUE)
 					.addContainerGap())
 		);
 		gl_panel_6.setVerticalGroup(
-			gl_panel_6.createParallelGroup(Alignment.TRAILING)
-				.addGroup(Alignment.LEADING, gl_panel_6.createSequentialGroup()
-					.addGap(80)
+			gl_panel_6.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_panel_6.createSequentialGroup()
+					.addContainerGap()
 					.addComponent(btnLaunchSimulation, GroupLayout.PREFERRED_SIZE, 55, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+					.addContainerGap(69, Short.MAX_VALUE))
 		);
 		panel_6.setLayout(gl_panel_6);
 
 		JLabel lblNewLabel = new JLabel("GNU GENERAL PUBLIC LICENSE");
 		panelLicense.add(lblNewLabel);
 
-		JLabel LabelI1 = new JLabel("I1");
-		LabelI1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblT = new JLabel("Temperatura");
+		lblT.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		JLabel labelI2 = new JLabel("I2");
-		labelI2.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblV = new JLabel("Volumen");
+		lblV.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		JLabel labelI3 = new JLabel("I3");
-		labelI3.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblMo = new JLabel("Masa Inicial");
+		lblMo.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 		JPanel panelTitle = new JPanel();
 		panelTitle.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
 
-		lblI2Value = new JLabel("5");
-		lblI2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblVValue = new JLabel("15");
+		lblVValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblI3Value = new JLabel("5");
-		lblI3Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
-
-
-		lblI1Value = new JLabel("5");
-		lblI1Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblMoValue = new JLabel("5");
+		lblMoValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 
-		sliderI1 = new JSlider();
-		sliderI1.setMaximum(10);
-		sliderI1.setMinorTickSpacing(1);
-		sliderI1.setValue(5);
-		sliderI1.addChangeListener(new ChangeListener() {
+		lblTValue = new JLabel("300");
+		lblTValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+
+
+		sliderT = new JSlider();
+		sliderT.setMinimum(280);
+		sliderT.setMaximum(330);
+		sliderT.setMinorTickSpacing(1);
+		sliderT.setValue(300);
+		sliderT.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
 				sliderI1Event();
 			}
 		});
 
 
-		sliderI2 = new JSlider();
-		sliderI2.setMaximum(10);
-		sliderI2.setMinorTickSpacing(1);
-		sliderI2.setValue(5);
-		sliderI2.addChangeListener(new ChangeListener() {
+		sliderV = new JSlider();
+		sliderV.setMinimum(3);
+		sliderV.setMaximum(30);
+		sliderV.setMinorTickSpacing(1);
+		sliderV.setValue(15);
+		sliderV.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				sliderI2Event();
 			}
@@ -599,46 +741,144 @@ public class PotApplet extends JApplet implements Runnable {
 
 
 
-		sliderI3 = new JSlider();
-		sliderI3.setMaximum(10);
-		sliderI3.setValue(5);
-		sliderI3.addChangeListener(new ChangeListener() {
+		sliderMo = new JSlider();
+		sliderMo.setMinimum(1);
+		sliderMo.setMaximum(10);
+		sliderMo.setValue(5);
+		sliderMo.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				sliderI3Event();
 			}
 		});
 		
-		JLabel lblI4 = new JLabel("I4");
-		lblI4.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblM = new JLabel("Masa Final");
+		lblM.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblI4Value = new JLabel("5");
-		lblI4Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblMValue = new JLabel("5");
+		lblMValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		sliderI4 = new JSlider();
-		sliderI4.setMaximum(10);
-		sliderI4.addChangeListener(new ChangeListener() {
+		sliderM = new JSlider();
+		sliderM.setMinimum(1);
+		sliderM.setMaximum(10);
+		sliderM.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				sliderI4Event();
 			}
 		});
-		sliderI4.setValue(5);
-		sliderI4.setMinorTickSpacing(1);
+		sliderM.setValue(5);
+		sliderM.setMinorTickSpacing(1);
 		
-		JLabel lblI5 = new JLabel("I5");
-		lblI5.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblType = new JLabel("Combustible");
+		lblType.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblI5Value = new JLabel("5");
-		lblI5Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTypeValue = new JLabel("Madera");
+		lblTypeValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		sliderI5 = new JSlider();
-		sliderI5.setMaximum(10);
-		sliderI5.addChangeListener(new ChangeListener() {
+		sliderType = new JSlider();
+		sliderType.setMinimum(1);
+		sliderType.setMaximum(4);
+		sliderType.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				sliderI5Event();
 			}
 		});
-		sliderI5.setValue(5);
-		sliderI5.setMinorTickSpacing(1);
+		sliderType.setValue(1);
+		sliderType.setMinorTickSpacing(1);
+		
+		lblMc = new JLabel("Masa Combustible");
+		lblMc.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblMcValue = new JLabel("10");
+		lblMcValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		sliderMc = new JSlider();
+		sliderMc.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
+				sliderI6Event();
+			}
+		});
+		sliderMc.setMinimum(1);
+		sliderMc.setValue(10);
+		sliderMc.setMinorTickSpacing(1);
+		sliderMc.setMaximum(50);
+		
+		btn1 = new JButton("1");
+		btn1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				btn1function();
+			}
+		});
+		
+		btn2 = new JButton("2");
+		btn2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				model.setCurrentPhase(2);
+				
+				btn1.setEnabled(true);
+				btn2.setEnabled(false);
+				btn3.setEnabled(true);
+				
+				lblT.setEnabled(true);
+				lblTValue.setEnabled(true);
+				sliderT.setEnabled(true);
+				
+				lblV.setEnabled(true);
+				lblVValue.setEnabled(true);
+				sliderV.setEnabled(true);
+				
+				lblMo.setEnabled(false);
+				lblMoValue.setEnabled(false);
+				sliderMo.setEnabled(false);
+				
+				lblM.setEnabled(false);
+				lblMValue.setEnabled(false);
+				sliderM.setEnabled(false);
+				
+				lblType.setEnabled(true);
+				lblTypeValue.setEnabled(true);
+				sliderType.setEnabled(true);
+				
+				lblMc.setEnabled(true);
+				lblMcValue.setEnabled(true);
+				sliderMc.setEnabled(true);
+			}
+		});
+		
+		btn3 = new JButton("3");
+		btn3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				model.setCurrentPhase(3);
+				
+				btn1.setEnabled(true);
+				btn2.setEnabled(true);
+				btn3.setEnabled(false);
+				
+				lblT.setEnabled(true);
+				lblTValue.setEnabled(true);
+				sliderT.setEnabled(true);
+				
+				lblV.setEnabled(false);
+				lblVValue.setEnabled(false);
+				sliderV.setEnabled(false);
+				
+				lblMo.setEnabled(true);
+				lblMoValue.setEnabled(true);
+				sliderMo.setEnabled(true);
+				
+				lblM.setEnabled(true);
+				lblMValue.setEnabled(true);
+				sliderM.setEnabled(true);
+				
+				lblType.setEnabled(true);
+				lblTypeValue.setEnabled(true);
+				sliderType.setEnabled(true);
+				
+				lblMc.setEnabled(true);
+				lblMcValue.setEnabled(true);
+				sliderMc.setEnabled(true);
+			}
+		});
 
 
 
@@ -646,37 +886,45 @@ public class PotApplet extends JApplet implements Runnable {
 		GroupLayout gl_panelInputs = new GroupLayout(panelInputs);
 		gl_panelInputs.setHorizontalGroup(
 			gl_panelInputs.createParallelGroup(Alignment.TRAILING)
+				.addComponent(panelTitle, GroupLayout.DEFAULT_SIZE, 383, Short.MAX_VALUE)
 				.addGroup(gl_panelInputs.createSequentialGroup()
+					.addGap(25)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING, false)
-								.addComponent(labelI3, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(LabelI1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(labelI2, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE))
-							.addGap(18)
+						.addGroup(Alignment.TRAILING, gl_panelInputs.createSequentialGroup()
+							.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
+								.addGroup(gl_panelInputs.createSequentialGroup()
+									.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+										.addComponent(lblV, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
+										.addComponent(lblMo, GroupLayout.DEFAULT_SIZE, 141, Short.MAX_VALUE)
+										.addComponent(lblM, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
+										.addComponent(lblType, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
+										.addComponent(lblMc, GroupLayout.PREFERRED_SIZE, 118, GroupLayout.PREFERRED_SIZE))
+									.addGap(18))
+								.addComponent(lblT, GroupLayout.DEFAULT_SIZE, 159, Short.MAX_VALUE))
+							.addPreferredGap(ComponentPlacement.RELATED)
 							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-								.addComponent(lblI1Value, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblI2Value, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblI3Value, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE))
-							.addGap(18)
-							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(sliderI1, 0, 0, Short.MAX_VALUE)
-								.addComponent(sliderI2, 0, 0, Short.MAX_VALUE)
-								.addComponent(sliderI3, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)))
+								.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblMoValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblMValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblTypeValue, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblMcValue, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE))
+							.addGap(4)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+								.addComponent(sliderMc, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)
+								.addComponent(sliderType, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)
+								.addComponent(sliderM, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)
+								.addComponent(sliderMo, GroupLayout.DEFAULT_SIZE, 109, Short.MAX_VALUE)
+								.addComponent(sliderV, 0, 0, Short.MAX_VALUE)
+								.addComponent(sliderT, 0, 0, Short.MAX_VALUE)))
 						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(lblI4Value, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(sliderI4, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))
-						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addComponent(lblI5, GroupLayout.PREFERRED_SIZE, 120, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(lblI5Value, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-							.addGap(18)
-							.addComponent(sliderI5, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)))
-					.addGap(19))
-				.addComponent(panelTitle, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 352, Short.MAX_VALUE)
+							.addComponent(btn1, GroupLayout.PREFERRED_SIZE, 94, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(btn2, GroupLayout.PREFERRED_SIZE, 93, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(btn3, GroupLayout.PREFERRED_SIZE, 91, GroupLayout.PREFERRED_SIZE)))
+					.addContainerGap())
 		);
 		gl_panelInputs.setVerticalGroup(
 			gl_panelInputs.createParallelGroup(Alignment.LEADING)
@@ -685,31 +933,46 @@ public class PotApplet extends JApplet implements Runnable {
 					.addGap(18)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-							.addComponent(LabelI1)
-							.addComponent(lblI1Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-						.addComponent(sliderI1, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(lblT)
+							.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+						.addComponent(sliderT, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-							.addComponent(labelI2)
-							.addComponent(lblI2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-						.addComponent(sliderI2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+							.addComponent(lblV)
+							.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+						.addComponent(sliderV, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addGap(11)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(labelI3)
-						.addComponent(lblI3Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(sliderI3, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addComponent(lblMo)
+						.addComponent(lblMoValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(sliderMo, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblI4, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblI4Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(sliderI4, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addComponent(lblM, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblMValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(sliderM, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addComponent(lblI5, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(lblI5Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-						.addComponent(sliderI5, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(429))
+						.addComponent(lblType, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(sliderType, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblTypeValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+							.addComponent(lblMcValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+							.addComponent(lblMc, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+						.addComponent(sliderMc, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panelInputs.createSequentialGroup()
+							.addComponent(btn1, GroupLayout.DEFAULT_SIZE, 55, Short.MAX_VALUE)
+							.addGap(12))
+						.addGroup(gl_panelInputs.createSequentialGroup()
+							.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+								.addComponent(btn2, GroupLayout.DEFAULT_SIZE, 54, Short.MAX_VALUE)
+								.addComponent(btn3, GroupLayout.DEFAULT_SIZE, 56, Short.MAX_VALUE))
+							.addContainerGap())))
 		);
 
 		JLabel lblDatosDeEntrada = new JLabel("Datos de Entrada");
@@ -724,22 +987,25 @@ public class PotApplet extends JApplet implements Runnable {
 
 		GroupLayout groupLayout = new GroupLayout(getContentPane());
 		groupLayout.setHorizontalGroup(
-			groupLayout.createParallelGroup(Alignment.TRAILING)
-				.addGroup(Alignment.LEADING, groupLayout.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(panel_visualizar, GroupLayout.PREFERRED_SIZE, 741, GroupLayout.PREFERRED_SIZE)
-					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-		);
-		groupLayout.setVerticalGroup(
 			groupLayout.createParallelGroup(Alignment.LEADING)
 				.addGroup(groupLayout.createSequentialGroup()
-					.addGap(12)
-					.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING, false)
-						.addComponent(panel_visualizar, Alignment.LEADING, 0, 0, Short.MAX_VALUE)
-						.addComponent(panel_control, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 568, Short.MAX_VALUE))
-					.addContainerGap(42, Short.MAX_VALUE))
+					.addContainerGap()
+					.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, 382, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panel_visualizar, GroupLayout.PREFERRED_SIZE, 741, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(31, Short.MAX_VALUE))
+		);
+		groupLayout.setVerticalGroup(
+			groupLayout.createParallelGroup(Alignment.TRAILING)
+				.addGroup(groupLayout.createSequentialGroup()
+					.addGroup(groupLayout.createParallelGroup(Alignment.TRAILING)
+						.addGroup(groupLayout.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(panel_visualizar, GroupLayout.DEFAULT_SIZE, 568, Short.MAX_VALUE))
+						.addGroup(groupLayout.createSequentialGroup()
+							.addGap(12)
+							.addComponent(panel_control, GroupLayout.PREFERRED_SIZE, 568, Short.MAX_VALUE)))
+					.addContainerGap())
 		);
 				
 				JPanel panel = new JPanel();

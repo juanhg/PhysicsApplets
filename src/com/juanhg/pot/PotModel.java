@@ -47,10 +47,10 @@ public class PotModel extends Model {
 	static final int PHASE_3 = 3;
 	static final int PHASE_4 = 4;
 
-	static final int WOOD = 0;
-	static final int COAL = 1;
-	static final int GASOLINE = 2;
-	static final int GAS = 3;
+	static final int WOOD = 1;
+	static final int COAL = 2;
+	static final int GASOLINE = 3;
+	static final int GAS = 4;
 
 
 	boolean end = false;
@@ -76,24 +76,17 @@ public class PotModel extends Model {
 	double temp1, temp2, temp3, temp4, temp5;
 
 
-	public PotModel(double T, double P, double V, double Vmax, int combustible){ 
+	public PotModel(double T, double V, double mo, double m, int combustible, double mc){ 
 		this.T = this.To = T;
-		this.P = this.Po = P;
-		this.V = this.Vo = V;
-		this.I4 = Vmax;
+		this.V = this.Vo = V/1000.0;
+		this.mo = mo;
+		this.m = m;
 		this.combustible = combustible;
-
+		this.mc = mc;
 		//Set the initTime, finalTime, and dt
 		initTime();
 
 		A = Math.PI*Math.pow(r, 2.0);
-
-		//mc
-		//mo = numInicial * pesoMaterial;
-		//mf = numfinal * pesoMaterial;
-
-
-		//Parametros calculados iniciales
 	}
 
 	public double getT() {
@@ -108,12 +101,20 @@ public class PotModel extends Model {
 		return P;
 	}
 
+	public int getCurrentPhase() {
+		return currentPhase;
+	}
+
+	public void setCurrentPhase(int currentPhase) {
+		this.currentPhase = currentPhase;
+	}
+
 	public void setP(double p) {
 		P = p;
 	}
 
 	public double getV() {
-		return V;
+		return V*1000.0;
 	}
 
 	public void setV(double v) {
@@ -147,16 +148,16 @@ public class PotModel extends Model {
 	void calculateq(){
 		switch(combustible){
 		case WOOD:
-			q = 15000;
+			q = 15;
 			break;
 		case COAL:
-			q = 27000;
+			q = 27;
 			break;
 		case GASOLINE:
-			q = 47000;
+			q = 47;
 			break;
 		case GAS:
-			q = 54000;
+			q = 54;
 			break;
 		}
 	}
@@ -166,13 +167,13 @@ public class PotModel extends Model {
 		switch(currentPhase){
 		case PHASE_1:
 			initTime = 0;
-			finalTime = Math.PI/2;
+			finalTime = Math.PI/2.0;
 			break;
 		case PHASE_2:
 			calculateq();
-			Qf = q *mc;
+			Qf = q * mc;
 			initTime = To;
-			finalTime = Tf = (Qf/m*c) + To;
+			finalTime = Tf = (Qf/20.8) + To;
 			break;
 		case PHASE_3:
 			calculateq();
@@ -200,16 +201,20 @@ public class PotModel extends Model {
 
 			switch(currentPhase){
 			case PHASE_1:
+				ho = ((N*R*To)/(m*g + Pa*A))*(1.0/A);
+				Vo = A*ho;
 				Q = 0;
 				Po = (N*R*To)/Vo;
 				Pf = Pa + (m*g)/A;
 				T = To;
-				ho = ((N*R*To)/(m*g + Pa*A))*(1/A);
 				Tf = (m*g*ho + Pa*Vo + To)/(1.0 - (2.0/(3.0*Pf*A))*((-m*g)-Pa*A));
 				hf = (N*R*Tf)/(Pf*A);
 				h = (hf-ho)*Math.sin(currentTime)+ho;
-				W = h*((-m*g)-Pa*A) + m*g*ho + Pa*Vo;
-				U = -W;
+				temp1 = h*((-m*g)-Pa*A);
+				temp2 = m*g*ho;
+				temp3 = Pa*Vo;
+				W = temp1 + temp2  + temp3;
+				U = -W + (3.0/2.0)*N*R*To;
 				break;
 			case PHASE_2:
 				//T ya ha sido calculada
