@@ -11,3 +11,4 @@ burger: http://www.iconarchive.com/show/food-icons-by-aha-soft/burger-icon.html
 stone: http://www.iconarchive.com/show/harry-potter-icons-by-anton-gerasimenko/Philosophers-Stone-2-icon.html
 bulb: https://www.iconfinder.com/icons/43712/bulb_idea_light_icon#size=128
       http://pixabay.com/en/icon-symbol-yellow-lamp-cartoon-32207/
+tornillo: https://www.iconfinder.com/icons/174753/screw_icon#size=128

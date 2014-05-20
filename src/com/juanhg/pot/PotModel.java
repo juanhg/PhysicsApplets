@@ -39,9 +39,10 @@ import com.juanhg.util.Time;
  *   @author Juan Hernandez Garcia 
  *   @brief Model that represents the loss of angular momentum 
  */
-public class PotModel extends Model {
+public class PotModel {
 
 	//Stages or phases of the model
+	static final int PHASE_0 = 0;
 	static final int PHASE_1 = 1;
 	static final int PHASE_2 = 2;
 	static final int PHASE_3 = 3;
@@ -51,10 +52,15 @@ public class PotModel extends Model {
 	static final int COAL = 2;
 	static final int GASOLINE = 3;
 	static final int GAS = 4;
+	double currentTime = 0.1;
+	double finalTime = 0;
+	double dt = 0.1;
+	boolean paused = true;
 
 
 	boolean end = false;
 	private int currentPhase;
+	private int selectedPhase;
 
 	//Constants
 	private final double r = 0.15;
@@ -63,34 +69,50 @@ public class PotModel extends Model {
 	private final double g = 9.8;
 	private final double Pa = Math.pow(10.0, 5.0);
 
-	//Input parameters
-	private double T, P, V, I4;
 	private int combustible;
 
 	//Calculated parameters
-	private double W, Q, U, h;
-	private double Vo, To, mo, ho, Po, mc,c;
-	private double hf, Qf, Tf, Vf, m, A, Pf, q, b;
+	private double T, P, V, W, Q, U, h;
+	private double Wo, Qo, Uo, Vo, Po, To, mo, ho, mc,c, alpha;
+	private double Wf, Qf, Qfinal, Uf, Vf, Pf, Tf, m, A, q,hf, b;
 
 	//Aux
 	double temp1, temp2, temp3, temp4, temp5;
 
+	Time time0;
 
-	public PotModel(double T, double V, double mo, double m, int combustible, double mc){ 
+
+	public PotModel(double T, double V, double mo, double m, int combustible, double mc, int phase){ 
+		super();
 		this.T = this.To = T;
 		this.V = this.Vo = V/1000.0;
 		this.mo = mo;
 		this.m = m;
 		this.combustible = combustible;
 		this.mc = mc;
-		//Set the initTime, finalTime, and dt
-		initTime();
+		this.currentPhase = phase;
 
 		A = Math.PI*Math.pow(r, 2.0);
+		this.alpha = (2.0/3.0)*(Pa + m*g/A);
+
+		//Set the initTime, finalTime, and dt
+		initTime();
+		initValues();
 	}
 
 	public double getT() {
-		return T;
+		if(currentPhase == PHASE_1){
+			return T;
+		}
+		return T-dt;
+	}
+	
+	public boolean isPaused() {
+		return paused;
+	}
+
+	public void setPaused(boolean paused) {
+		this.paused = paused;
 	}
 
 	public void setT(double t) {
@@ -122,7 +144,7 @@ public class PotModel extends Model {
 	}
 
 	public double getW() {
-		return 5;
+		return W;
 	}
 
 	public void setW(double w) {
@@ -145,6 +167,7 @@ public class PotModel extends Model {
 		U = u;
 	}
 
+	
 	void calculateq(){
 		switch(combustible){
 		case WOOD:
@@ -166,32 +189,207 @@ public class PotModel extends Model {
 	public void initTime(){
 		switch(currentPhase){
 		case PHASE_1:
-			initTime = 0;
+			currentTime =  0.1;
 			finalTime = Math.PI/2.0;
 			break;
 		case PHASE_2:
 			calculateq();
-			Qf = q * mc;
-			initTime = To;
-			finalTime = Tf = (Qf/20.8) + To;
+			Qfinal = q * mc;
+			currentTime =  To;
+			finalTime = Tf = (Qfinal/20.8) + To;
 			break;
 		case PHASE_3:
 			calculateq();
-			Qf = q *mc;
-			hf = (Po*Vo + Qf + (3.0/2.0)*N*R*To)/((5.0/2.0)*Po);
+			Qfinal = q*mc;
+			Po =  Pa + (m*g)/A;
+			ho = ((N*R*To)/(mo*g + Pa*A));
+			Vo = ho*A;
+			hf = ((Po*Vo + Qfinal + (3.0/2.0)*N*R*To)/((5.0/2.0)*Po))/A;
 			Vf = hf*A;
-			P = m*g + Pa*A;
-			initTime = To;
-			finalTime = Tf = (Vf*P)/(N*R);
+			currentTime =  To;
+			finalTime = Tf = (Vf*Po)/(N*R);
 			break;
 		}
 		dt = 0.1;
 	}
 
+	public void initValues(){
+		switch(currentPhase){
+		case PHASE_1:
+			currentTime =  0.1;
+			finalTime = Math.PI/2.0;
+
+			ho = ((N*R*To)/(mo*g + Pa*A));
+			V = Vo = A*ho;
+			Q = Qo = Qf = 0;
+			Po = (N*R*To)/Vo;
+			Pf = Pa + (m*g)/A;
+			T = To;
+			Tf = (((alpha/Po) + 1.0)*To)/((alpha/Pf)+1.0);
+			hf = (N*R*Tf)/(Pf*A);
+
+			h = (hf-ho)*Math.sin(finalTime)+ho;
+			Vf = A*h;
+			temp1 = h*((-m*g)-Pa*A);
+			temp2 = m*g*ho;
+			temp3 = Pa*Vo;
+			Wf = -(temp1 + temp2  + temp3);
+			Uf = -Wf + (3.0/2.0)*N*R*To;
+
+			h = (hf-ho)*Math.sin(currentTime)+ho;
+			temp1 = h*((-m*g)-Pa*A);
+			temp2 = m*g*ho;
+			temp3 = Pa*Vo;
+			Wo = -(temp1 + temp2  + temp3);
+			Uo = -W + (3.0/2.0)*N*R*To;
+
+			break;
+		case PHASE_2:
+			calculateq();
+			Qfinal = q * mc;
+			currentTime =  To;
+			finalTime = Tf = (Qfinal/20.8) + To;
+
+			W = Wo = Wf = 0;
+			V = Vo = Vf = Vo;
+			h = Vo/A;
+
+			Po = (N*R/Vo)*To;
+			Uo = (3.0/2.0)*N*R*To;
+			Qo = 0;
+
+			Pf = (N*R/Vo)*Tf;
+			Uf = (3.0/2.0)*N*R*Tf;
+			Qf = 20.8*(Tf-To);
+			break;
+		case PHASE_3:
+			calculateq();
+			Qfinal = q*mc;
+			Po = Pf = P =  Pa + (m*g)/A;
+			ho = ((N*R*To)/(mo*g + Pa*A));
+			Vo = ho*A;
+			hf = ((Po*Vo + Qfinal + (3.0/2.0)*N*R*To)/((5.0/2.0)*Po))/A;
+			Vf = hf*A;
+			currentTime =  To;
+			finalTime = Tf = (Vf*Po)/(N*R);
+
+
+			Uo = (3.0/2.0)*N*R*To;
+			Qo = 0;
+			Wo = Q;
+
+			Uf = (3.0/2.0)*N*R*Tf;
+			Qf = 20.8*(Tf-To);
+			Wf = (3.0/2.0)*N*R*(Tf-To) + Qf;
+			b = (hf - ho)/(Tf - To);
+			h = b*(Tf-To)+ ho;
+			Vf = h*A;
+
+			break;
+		}
+	}
+
+
+
+	public double getWo() {
+		return Wo;
+	}
+
+	public void setWo(double wo) {
+		Wo = wo;
+	}
+
+	public double getQo() {
+		return Qo;
+	}
+
+	public void setQo(double qo) {
+		Qo = qo;
+	}
+
+	public double getUo() {
+		return Uo;
+	}
+
+	public void setUo(double uo) {
+		Uo = uo;
+	}
+
+	public double getVo() {
+		return Vo*1000.0;
+	}
+
+	public void setVo(double vo) {
+		Vo = vo;
+	}
+
+	public double getPo() {
+		return Po;
+	}
+
+	public void setPo(double po) {
+		Po = po;
+	}
+
+	public double getTo() {
+		return To;
+	}
+
+	public void setTo(double to) {
+		To = to;
+	}
+
+	public double getWf() {
+		return Wf;
+	}
+
+	public void setWf(double wf) {
+		Wf = wf;
+	}
+
+	public double getQf() {
+		return Qf;
+	}
+
+	public void setQf(double qf) {
+		Qf = qf;
+	}
+
+	public double getUf() {
+		return Uf;
+	}
+
+	public void setUf(double uf) {
+		Uf = uf;
+	}
+
+	public double getVf() {
+		return Vf*1000.0;
+	}
+
+	public void setVf(double vf) {
+		Vf = vf;
+	}
+
+	public double getPf() {
+		return Pf;
+	}
+
+	public void setPf(double pf) {
+		Pf = pf;
+	}
+
+	public double getTf() {
+		return Tf;
+	}
+
+	public void setTf(double tf) {
+		Tf = tf;
+	}
+
 	/**
 	 * Actualizes the simulation according the actual time
 	 */
-	@Override
 	public void simulate() {		
 
 		if(!end){
@@ -201,41 +399,52 @@ public class PotModel extends Model {
 
 			switch(currentPhase){
 			case PHASE_1:
-				ho = ((N*R*To)/(m*g + Pa*A))*(1.0/A);
-				Vo = A*ho;
-				Q = 0;
-				Po = (N*R*To)/Vo;
-				Pf = Pa + (m*g)/A;
-				T = To;
-				Tf = (m*g*ho + Pa*Vo + To)/(1.0 - (2.0/(3.0*Pf*A))*((-m*g)-Pa*A));
-				hf = (N*R*Tf)/(Pf*A);
-				h = (hf-ho)*Math.sin(currentTime)+ho;
-				temp1 = h*((-m*g)-Pa*A);
-				temp2 = m*g*ho;
-				temp3 = Pa*Vo;
-				W = temp1 + temp2  + temp3;
-				U = -W + (3.0/2.0)*N*R*To;
+				if(time0 == null){
+					time0 = new Time();
+					time0.start();
+					
+					currentTime += dt;
+					h = (hf-ho)*Math.sin(currentTime)+ho;
+					V = A*h;
+					temp1 = h*((-m*g)-Pa*A);
+					temp2 = m*g*ho;
+					temp3 = Pa*Vo;
+					W = -(temp1 + temp2  + temp3);
+					U = -W + (3.0/2.0)*N*R*To;
+				}
+				else{
+					double wait = 2000;
+					time0.pause();
+					double t0 = time0.getTime();
+					time0.start();
+					if(t0 >= wait){
+						paused = false;
+						h = (hf-ho)*Math.sin(currentTime)+ho;
+						V = A*h;
+						temp1 = h*((-m*g)-Pa*A);
+						temp2 = m*g*ho;
+						temp3 = Pa*Vo;
+						W = -(temp1 + temp2  + temp3);
+						U = -W + (3.0/2.0)*N*R*To;
+					}
+				}
 				break;
 			case PHASE_2:
 				//T ya ha sido calculada
 				P = (N*R/Vo)*T;
 				U = (3.0/2.0)*N*R*T;
-				Q = m*c*(T-To);
-				W = 0;
-				h = Vo/A;
+				Q = 20.8*(T-To);
+
 				break;
 			case PHASE_3:
 				//T ya ha sido calculada
 				P = m*g + Pa*A;
 				U = (3.0/2.0)*N*R*T;
-				Q = m*c*(T-To);
+				Q = 20.8*(T-To);
 				W = (3.0/2.0)*N*R*(T-To) + Q;
-				ho = ((N*R*To)/(m*g + Pa*A))*(1/A);
-				Vo = ho*A;
-				Qf = m*c; //Esto es asi????? o es q*mc
-				hf = (Po*Vo + Qf + (3.0/2.0)*N*R*To)/(2.5*Po);
 				b = (hf - ho)/(Tf - To);
 				h = b*(T-To)+ ho;
+				V = h*A;
 				break;
 			}
 
@@ -247,12 +456,20 @@ public class PotModel extends Model {
 		}
 	}
 
-	@Override
+	public boolean getEnd(){
+		return end;
+	}
+
 	public void incrementCurrentTime(){
-		currentTime += dt;
 		switch(currentPhase){
+		case PHASE_1:
+			if(!paused){
+				currentTime += dt;
+			}
+			break;
 		case PHASE_2:
 		case PHASE_3:
+			currentTime += dt;
 			T += dt;
 			break;
 		}
@@ -279,6 +496,30 @@ public class PotModel extends Model {
 		case PHASE_3:
 			break;
 		}
+	}
+
+	public double getH() {
+		System.out.println(h);
+		return 5;
+	}
+
+	public void setH(double h) {
+		this.h = h;
+	}
+
+	public double getHo() {
+		return ho;
+	}
+
+	public void setHo(double ho) {
+		this.ho = ho;
+	}
+
+	public boolean finalTimeReached(){
+		if(currentTime >= finalTime){
+			return true;
+		}
+		return false;
 	}
 
 	/** GETTERS & SETTERS **/
