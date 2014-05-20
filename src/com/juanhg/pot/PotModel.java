@@ -499,8 +499,7 @@ public class PotModel {
 	}
 
 	public double getH() {
-		System.out.println(h);
-		return 5;
+		return h*100;
 	}
 
 	public void setH(double h) {
