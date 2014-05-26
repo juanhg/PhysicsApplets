@@ -59,6 +59,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.jfree.chart.annotations.XYAnnotation;
+import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.axis.SymbolAxis;
 import org.jfree.chart.axis.ValueAxis;
 
@@ -75,6 +76,8 @@ public class PotApplet extends JApplet implements Runnable {
 	private final String display = "display.png";
 	private final String rScrew = "rScrew.png";
 	private final String lScrew = "lScrew.png";
+	private final String pesa = "pesa.png";
+	private final String pesa2 = "pesa2.png";
 	int currentSimulation = 0;
 
 	final int pistonY0 = 3;
@@ -122,7 +125,7 @@ public class PotApplet extends JApplet implements Runnable {
 	int lScrewX = potInfXLimit;
 	int rScrewX = potSupXLimit;
 	//Images
-	BufferedImage exampleImage, fire1Image, fire2Image, displayImage, rScrewImage, lScrewImage;
+	BufferedImage exampleImage, fire1Image, fire2Image, displayImage, rScrewImage, lScrewImage, pesaImage, pesa2Image;
 
 	//Annotations
 	XYAnnotation exampleAnnotation = null;
@@ -137,8 +140,12 @@ public class PotApplet extends JApplet implements Runnable {
 	XYAnnotation contentAnnotation = null;
 	XYAnnotation rScrewAnnotation = null;
 	XYAnnotation lScrewAnnotation = null;
+	XYAnnotation pesaAnnotation = null;
+	XYTextAnnotation pesoAnnotation = null;
+	XYTextAnnotation peso2Annotation = null;
 	private JLabel lblVValue, lblMoValue, lblTValue, lblWValue, lblMValue, lblTypeValue, lblMcValue;
 	private JLabel lblQValue, lblQ, lblT, lblV, lblM, lblMo, lblMc, lblType;
+
 
 	//Sliders
 	private JSlider sliderT, sliderV, sliderMo, sliderM, sliderType, sliderMc; 
@@ -338,9 +345,9 @@ public class PotApplet extends JApplet implements Runnable {
 			this.updatePanels();
 			repaint();
 
-			if(model.getEnd()){
-				end = true;
-			}
+//			if(model.getEnd()){
+//				end = true;
+//			}
 
 			try {
 				Thread.sleep(sleepTime);
@@ -359,9 +366,17 @@ public class PotApplet extends JApplet implements Runnable {
 		T = sliderT.getValue();
 		V = sliderV.getValue();
 		type = sliderType.getValue();
-		mo = sliderMo.getValue();
-		m = sliderM.getValue();
 		mc = sliderMc.getValue();
+		
+		if(btn3.isEnabled() == false){
+			mo = sliderMo.getValue()/1000.0;
+			m = sliderM.getValue()/1000.0;
+		}
+		else{
+			mo = sliderMo.getValue();
+			m = sliderM.getValue();
+		}
+		
 	}
 
 	public String dToString(double value, int precision){
@@ -410,6 +425,8 @@ public class PotApplet extends JApplet implements Runnable {
 		displayImage = loadImage(display);
 		rScrewImage = loadImage(rScrew);
 		lScrewImage = loadImage(lScrew);
+		pesaImage = loadImage(pesa);
+		pesa2Image = loadImage(pesa2);
 
 		//Set Images  
 		updateFire();
@@ -468,7 +485,7 @@ public class PotApplet extends JApplet implements Runnable {
 			lScrewAnnotation = chartPot.setImageAtPoint(lScrewImage, lScrewX, model.getH());
 		}
 	}
-	
+
 	void initPlot(){
 		Stroke stroke = new BasicStroke(2f);
 
@@ -495,7 +512,27 @@ public class PotApplet extends JApplet implements Runnable {
 		chartPot.deleteAnnotation(topAnnotation);
 		topAnnotation = chartPot.drawBox(potInfXLimit+0.18, model.getH(), potSupXLimit-0.18, model.getH()+2, stroke, Color.BLACK, Color.WHITE);
 		chartPot.deleteAnnotation(contentAnnotation);
-		contentAnnotation = chartPot.drawBox(potInfXLimit+0.18, potInfYLimit, potSupXLimit-0.18, model.getH(), stroke, Color.BLACK, Color.BLUE);		
+		contentAnnotation = chartPot.drawBox(potInfXLimit+0.18, potInfYLimit, potSupXLimit-0.18, model.getH(), stroke, Color.BLACK, Color.BLUE);
+		chartPot.deleteAnnotation(pesaAnnotation);
+		chartPot.deleteAnnotation(pesoAnnotation);
+
+		if(model.getCurrentPhase() != 2){
+			if(model.getCurrentPhase() == 3){
+				pesaAnnotation = chartPot.setImageAtPoint(pesa2Image, ((potInfXLimit+potSupXLimit)/2.0)+0.03, model.getH()+6);
+				pesoAnnotation = new XYTextAnnotation(Double.toString(model.getPeso()), ((potInfXLimit+potSupXLimit)/2.0)+0.03, model.getH()+5);
+				pesoAnnotation.setPaint(Color.WHITE);
+				pesoAnnotation.setFont(new Font(null, 10, 15));
+				chartPot.setAnnotation(pesoAnnotation);
+			}
+			else{
+				pesaAnnotation = chartPot.setImageAtPoint(pesaImage, ((potInfXLimit+potSupXLimit)/2.0)+0.03, model.getH()+16.5);
+				pesoAnnotation = new XYTextAnnotation(Double.toString(model.getPeso()), ((potInfXLimit+potSupXLimit)/2.0)+0.03, model.getH()+10);
+				pesoAnnotation.setPaint(Color.WHITE);
+				pesoAnnotation.setFont(new Font(null, 10, 40));
+				chartPot.setAnnotation(pesoAnnotation);
+			}
+	
+		}
 	}
 
 	void initDisplay(){
@@ -615,7 +652,7 @@ public class PotApplet extends JApplet implements Runnable {
 		lblMc.setEnabled(false);
 		lblMcValue.setEnabled(false);
 		sliderMc.setEnabled(false);
-		
+
 		updatePanels();
 		repaint();
 	}
@@ -865,7 +902,7 @@ public class PotApplet extends JApplet implements Runnable {
 
 		sliderMo = new JSlider();
 		sliderMo.setMinimum(1);
-		sliderMo.setMaximum(10);
+		sliderMo.setMaximum(1000);
 		sliderMo.setValue(5);
 		sliderMo.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -881,7 +918,7 @@ public class PotApplet extends JApplet implements Runnable {
 
 		sliderM = new JSlider();
 		sliderM.setMinimum(1);
-		sliderM.setMaximum(20);
+		sliderM.setMaximum(1000);
 		sliderM.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				sliderI4Event();
@@ -935,11 +972,6 @@ public class PotApplet extends JApplet implements Runnable {
 		btn2.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				model.setCurrentPhase(2);
-				updateFire();
-				updateScrews();
-				updatePot();
-
 				btn1.setEnabled(true);
 				btn2.setEnabled(false);
 				btn3.setEnabled(true);
@@ -968,6 +1000,12 @@ public class PotApplet extends JApplet implements Runnable {
 				lblMcValue.setEnabled(true);
 				sliderMc.setEnabled(true);
 				
+				model.setCurrentPhase(2);
+				readInputs();
+				updateFire();
+				updateScrews();
+				updatePot();
+
 				updatePanels();
 				repaint();
 			}
@@ -976,11 +1014,6 @@ public class PotApplet extends JApplet implements Runnable {
 		btn3 = new JButton("3");
 		btn3.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-	
-				model.setCurrentPhase(3);
-				updateFire();
-				updateScrews();
-				updatePot();
 
 				btn1.setEnabled(true);
 				btn2.setEnabled(true);
@@ -1010,6 +1043,12 @@ public class PotApplet extends JApplet implements Runnable {
 				lblMcValue.setEnabled(true);
 				sliderMc.setEnabled(true);
 				
+				model.setCurrentPhase(3);
+				readInputs();
+				updateFire();
+				updateScrews();
+				updatePot();
+
 				updatePanels();
 				repaint();
 			}

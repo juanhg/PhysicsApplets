@@ -1,5 +1,4 @@
 /*  -----------------------------------------------------------------
- 	 @file   PoModel.java
      @author Juan Hernandez Garcia 
  	-----------------------------------------------------------------	
     Copyright (C) 2014  Modesto Modesto T Lopez-Lopez
@@ -94,6 +93,8 @@ public class PotModel {
 
 		A = Math.PI*Math.pow(r, 2.0);
 		this.alpha = (2.0/3.0)*(Pa + m*g/A);
+		
+		this.setDt();
 
 		//Set the initTime, finalTime, and dt
 		initTime();
@@ -106,7 +107,7 @@ public class PotModel {
 		}
 		return T-dt;
 	}
-	
+
 	public boolean isPaused() {
 		return paused;
 	}
@@ -167,7 +168,23 @@ public class PotModel {
 		U = u;
 	}
 
-	
+	private void setDt(){
+		switch(combustible){
+		case WOOD:
+			dt = 0.1;
+			break;
+		case COAL:
+			dt = 0.2;
+			break;
+		case GASOLINE:
+			dt = 0.5;
+			break;
+		case GAS:
+			dt = 0.6;
+			break;
+		}
+	}
+
 	void calculateq(){
 		switch(combustible){
 		case WOOD:
@@ -202,7 +219,7 @@ public class PotModel {
 			calculateq();
 			Qfinal = q*mc;
 			Po =  Pa + (m*g)/A;
-			ho = ((N*R*To)/(mo*g + Pa*A));
+			ho = ((N*R*To)/(m*g + Pa*A));
 			Vo = ho*A;
 			hf = ((Po*Vo + Qfinal + (3.0/2.0)*N*R*To)/((5.0/2.0)*Po))/A;
 			Vf = hf*A;
@@ -210,7 +227,6 @@ public class PotModel {
 			finalTime = Tf = (Vf*Po)/(N*R);
 			break;
 		}
-		dt = 0.1;
 	}
 
 	public void initValues(){
@@ -266,7 +282,7 @@ public class PotModel {
 			calculateq();
 			Qfinal = q*mc;
 			Po = Pf = P =  Pa + (m*g)/A;
-			ho = ((N*R*To)/(mo*g + Pa*A));
+			ho = ((N*R*To)/(m*g + Pa*A));
 			Vo = ho*A;
 			hf = ((Po*Vo + Qfinal + (3.0/2.0)*N*R*To)/((5.0/2.0)*Po))/A;
 			Vf = hf*A;
@@ -317,6 +333,20 @@ public class PotModel {
 
 	public double getVo() {
 		return Vo*1000.0;
+	}
+
+	public double getPeso(){
+		switch(currentPhase){
+		case PHASE_1:
+			if(paused){
+				return mo;
+			}
+			else{
+				return m;
+			}
+		}
+		return m;
+		
 	}
 
 	public void setVo(double vo) {
@@ -402,7 +432,7 @@ public class PotModel {
 				if(time0 == null){
 					time0 = new Time();
 					time0.start();
-					
+
 					currentTime += dt;
 					h = (hf-ho)*Math.sin(currentTime)+ho;
 					V = A*h;
