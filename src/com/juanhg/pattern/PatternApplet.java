@@ -235,6 +235,17 @@ public class PatternApplet extends JApplet implements Runnable {
 		}
 	}
 	
+	public String dToString(double value, int precision){
+		String x = String.valueOf(value);
+		if(x.length() > precision){
+			return (x.substring(0,precision));
+		}
+		else{
+			return x;
+		}
+	}
+
+	
 	@Override
 	public void run() {
 
