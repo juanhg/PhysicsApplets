@@ -57,6 +57,7 @@ import javax.swing.event.ChangeListener;
 
 import org.jfree.chart.annotations.XYAnnotation;
 
+import com.juanhg.util.Time;
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
 
@@ -76,6 +77,8 @@ public class CarApplet extends JApplet implements Runnable {
 	//Control variables
 	long sleepTime = 30;	
 	boolean end = false;
+	
+	Time time = new Time();
 	
 	//Inputs
 	double Va, r, mg, Vcar, a, Qc;
@@ -115,14 +118,16 @@ public class CarApplet extends JApplet implements Runnable {
 	XYAnnotation carAnnotation = null;
 	XYAnnotation headAnnotation = null;
 	XYAnnotation lineAnnotation = null;
+	XYAnnotation pistonBodyAnnotation = null;
+	XYAnnotation liquidAnnotation = null;
 	
 	//Labels
 	private JLabel lblWcValue;  
-	private JLabel lblRValue, lblMgValue, lblVaValue, lblNcValue, lblVcarValue, lblAValue;
-	private JLabel lblWc, lblO3Value, lblO3, lblVValue, lblPValue, lblHValue;
+	private JLabel lblRValue, lblMgValue, lblVaValue, lblNcValue, lblVcarValue;
+	private JLabel lblWc, lblQcValue, lblTmaxValue, lblO3, lblVValue, lblPValue, lblEtaValue, lblXValue, lblFValue;
 
 	//Sliders
-	private JSlider sliderVa, sliderR, sliderMg, sliderVcar, sliderA, sliderQc; 
+	private JSlider sliderVa, sliderR, sliderMg, sliderVcar, sliderQc; 
 
 	//Buttons
 	JButton btnLaunchSimulation;
@@ -190,13 +195,13 @@ public class CarApplet extends JApplet implements Runnable {
 			lblVcarValue.setText("" + dynamicF);
 		}
 	}
-
+	
 	private void sliderI5Event(){
-		//10-100
 		double dynamicF;
-		if(sliderA.getValueIsAdjusting()){
-			dynamicF = (double) sliderA.getValue();
-			lblAValue.setText("" + dynamicF);
+		if(sliderQc.getValueIsAdjusting()){
+			dynamicF = (double) sliderQc.getValue();
+			lblQcValue.setText("" + dynamicF);
+			Qc = dynamicF;
 		}
 	}
 	
@@ -211,7 +216,6 @@ public class CarApplet extends JApplet implements Runnable {
 
 			while(flujo.isAlive()) {}
 
-			model.getTime().stop();
 
 			this.readInputs();
 			this.initSimulation();
@@ -221,8 +225,8 @@ public class CarApplet extends JApplet implements Runnable {
 			sliderVa.setEnabled(buttonsOn);
 			sliderMg.setEnabled(buttonsOn);
 			sliderVcar.setEnabled(buttonsOn);
-			sliderA.setEnabled(buttonsOn);
 			sliderR.setEnabled(buttonsOn);
+			sliderQc.setEnabled(buttonsOn);
 					
 			repaint();
 
@@ -243,9 +247,12 @@ public class CarApplet extends JApplet implements Runnable {
 			sliderVa.setEnabled(buttonsOn);
 			sliderMg.setEnabled(buttonsOn);
 			sliderVcar.setEnabled(buttonsOn);
-			sliderA.setEnabled(buttonsOn);
 			sliderR.setEnabled(buttonsOn);
+			sliderQc.setEnabled(buttonsOn);
 			
+			
+			time = new Time();
+			time.start();
 			flujo.start();
 		}
 	}
@@ -255,8 +262,13 @@ public class CarApplet extends JApplet implements Runnable {
 		int precision = 8;
 		float grosor = 2f;
 		end = false;
+		
 		lblWcValue.setText(dToString(model.getWc(), precision));
 		lblNcValue.setText(dToString(model.getNciclos(), precision));
+		lblFValue.setText(dToString(model.getF(), precision));
+		lblXValue.setText(dToString(model.getX(), precision+1));
+		lblEtaValue.setText(dToString(model.getEta(), precision));
+		lblTmaxValue.setText(dToString(model.getTmax(), precision));
 
 		while(!end){
 
@@ -269,8 +281,12 @@ public class CarApplet extends JApplet implements Runnable {
 			chartPlot.replacePlot(3, model.chart3AsArray(), "", Color.BLUE, grosor, true);
 			chartPlot.replacePlot(4, model.chart4AsArray(), "", Color.BLUE, grosor, true);
 			
-			lblPValue.setText(dToString(model.getP(), precision));
+			lblPValue.setText(dToString(model.getP(), precision+2));
 			lblVValue.setText(dToString(model.getV(), precision));
+			
+			updateCar();
+			updatePiston();
+			
 			this.updatePanels();
 			repaint();
 			
@@ -301,7 +317,6 @@ public class CarApplet extends JApplet implements Runnable {
 	private void readInputs(){
 		Va = sliderVa.getValue();
 		r = sliderR.getValue();
-		a = sliderA.getValue()/100;
 		mg = sliderMg.getValue();
 		Vcar = sliderVcar.getValue();
 		Qc = sliderQc.getValue();
@@ -314,7 +329,8 @@ public class CarApplet extends JApplet implements Runnable {
 		Point2D [] nullArray = new Point2D[0];
 
 		//Crear modelo
-		model = new CarModel(Va, r, mg, Vcar, a, Qc);
+		model = new CarModel(Va, r, mg, Vcar, Qc);
+		supRoadXLimit = (int) model.getX() + (int)(model.getX()*0.1);
 		
 		// Inicializar charts
 		chartPlot = new Grafica(nullArray,"", "", "V", "P", false, Color.BLUE,grosor,true);
@@ -322,11 +338,13 @@ public class CarApplet extends JApplet implements Runnable {
 		chartPlot.agregarGrafica(model.chart2AsArray(), "", Color.BLUE, grosor, true);
 		chartPlot.agregarGrafica(model.chart3AsArray(), "", Color.BLUE, grosor, true);
 		chartPlot.agregarGrafica(model.chart4AsArray(), "", Color.BLUE, grosor, true);
-		chartPlot.setRangeAxis(0,11,99999,3400000);
+		chartPlot.setRangeAxis((model.getV2()-model.getV1()*0.1),(model.getV1()+model.getV1()*0.1),model.getPa() - model.getPmax()*0.1,model.getPmax() + model.getPmax()*0.1);
 		
 		
 		chartPiston = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,grosor,true);
 		chartPiston.setRangeAxis(infPistonXLimit,supPistonXLimit, infPistonYLimit, supPistonYLimit);
+//		chartPiston.fijaFondo(Color.WHITE);
+		chartPiston.setAxisVisible(false);
 		
 		chartCar = new Grafica(nullArray,"", "", "", "", false, Color.BLUE,grosor,true);
 		chartCar.setRangeAxis(infRoadXLimit, supRoadXLimit, infRoadYLimit, supRoadYLimit);
@@ -341,9 +359,9 @@ public class CarApplet extends JApplet implements Runnable {
 		//Set Images  
 		chartCar.setImageAtPoint(roadImage, (supRoadXLimit-infRoadXLimit)/2.0,(supRoadYLimit-infRoadYLimit)/2.0);
 		carAnnotation = chartCar.setImageAtPoint(carImage, (supRoadXLimit-infRoadXLimit)/2.0,(supRoadYLimit-infRoadYLimit)/2.0);
-		chartPiston.setImageAtPoint(pistonImage, (supPistonXLimit-infPistonXLimit)/2.0,3);
-		//lineAnnotation = chartPiston.drawLine((supPistonXLimit-infPistonXLimit)/2.0, -2, (supPistonXLimit-infPistonXLimit)/2.0, 7,new BasicStroke(10f), Color.BLACK);
-		headAnnotation = chartPiston.setImageAtPoint(headImage, (supPistonXLimit-infPistonXLimit)/2.0, 7);
+		pistonBodyAnnotation = chartPiston.setImageAtPoint(pistonImage, (supPistonXLimit-infPistonXLimit)/2.0,3);
+		lineAnnotation = chartPiston.drawBox(((supPistonXLimit-infPistonXLimit)/2.0)-0.1, -4, ((supPistonXLimit-infPistonXLimit)/2.0)+0.1, 7, new BasicStroke(2f), Color.BLACK, Color.GRAY);
+		headAnnotation = chartPiston.setImageAtPoint(headImage, (supPistonXLimit-infPistonXLimit)/2.0, 6.5);
 		
 		//Actualize panels
 		updatePanels();
@@ -391,12 +409,54 @@ public class CarApplet extends JApplet implements Runnable {
 
 	}
 	
+	private void updateCar(){
+		double xfinal = model.getX();
+		double tFinal = 10;
+		double currentX = 0;
+		time.pause();
+		double currentTime = (double) time.getTime()/1000.0;
+		
+		if(currentTime <= tFinal){
+			chartCar.deleteAnnotation(carAnnotation);
+			currentX = normalize(currentTime, 0, 10, 0, xfinal); 
+			carAnnotation = chartCar.setImageAtPoint(carImage, currentX, (supRoadYLimit-infRoadYLimit)/2.0);
+		}
+		
+		time.start();
+		System.out.println(tFinal);
+	}
+	
+	private void updatePiston(){
+		Color liquidColor;
+		if(model.getCurrentPhase() <= 2){
+			liquidColor = new Color(100,180,255,150);
+		}
+		else{
+			liquidColor = new Color(255,100,100,150);
+		}
+		double currentH = normalize(model.getH(), model.getHMin(), model.getHMax(), 0.5, 6.5);
+		
+		chartPiston.deleteAnnotation(liquidAnnotation);
+		liquidAnnotation = chartPiston.drawBox(2.8,currentH-0.2,5,7.5,null, null, liquidColor);
+		chartPiston.deleteAnnotation(pistonBodyAnnotation);
+		pistonBodyAnnotation = chartPiston.setImageAtPoint(pistonImage, (supPistonXLimit-infPistonXLimit)/2.0,3);
+
+		
+		chartPiston.deleteAnnotation(lineAnnotation);
+		lineAnnotation = chartPiston.drawBox(((supPistonXLimit-infPistonXLimit)/2.0)-0.1, -4, ((supPistonXLimit-infPistonXLimit)/2.0)+0.1, currentH, new BasicStroke(2f), Color.BLACK, Color.GRAY);
+		chartPiston.deleteAnnotation(headAnnotation);
+		headAnnotation = chartPiston.setImageAtPoint(headImage, ((supPistonXLimit-infPistonXLimit)/2.0)-0.025, currentH);
+	}
+	
 	private void updatePanels(){
 		panelPlot.actualizaGrafica(chartPlot);
 		panelMotor.actualizaGrafica(chartPiston);
 		panelCar.actualizaGrafica(chartCar);
 	}
 	
+	public double normalize(double x, double a, double b, double c, double d){
+		return (x*(d-c))/(b-a) + (c*b - a*d)/(b-a);
+	}
 	
 	private void autogeneratedCode(){
 		JPanel panel_control = new JPanel();
@@ -431,12 +491,12 @@ public class CarApplet extends JApplet implements Runnable {
 		lblNcValue.setText("0");
 		lblNcValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblO3 = new JLabel("O3:");
+		lblO3 = new JLabel("Tmax:");
 		lblO3.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblO3Value = new JLabel();
-		lblO3Value.setText("0");
-		lblO3Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTmaxValue = new JLabel();
+		lblTmaxValue.setText("0");
+		lblTmaxValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel lblV = new JLabel("V:");
 		lblV.setFont(new Font("Tahoma", Font.PLAIN, 14));
@@ -444,12 +504,12 @@ public class CarApplet extends JApplet implements Runnable {
 		JLabel lblP = new JLabel("P:");
 		lblP.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel lblH = new JLabel("h:");
+		JLabel lblH = new JLabel("Eta:");
 		lblH.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblHValue = new JLabel();
-		lblHValue.setText("0");
-		lblHValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblEtaValue = new JLabel();
+		lblEtaValue.setText("0");
+		lblEtaValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		lblPValue = new JLabel();
 		lblPValue.setText("0");
@@ -459,6 +519,20 @@ public class CarApplet extends JApplet implements Runnable {
 		lblVValue.setText("0");
 		lblVValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
+		JLabel lblF = new JLabel("F:");
+		lblF.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblFValue = new JLabel();
+		lblFValue.setText("0");
+		lblFValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		JLabel lblDist = new JLabel("Dist:");
+		lblDist.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblXValue = new JLabel();
+		lblXValue.setText("0");
+		lblXValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
@@ -467,27 +541,34 @@ public class CarApplet extends JApplet implements Runnable {
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addContainerGap()
 							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-								.addComponent(lblWc, GroupLayout.DEFAULT_SIZE, 87, Short.MAX_VALUE)
-								.addComponent(lblNc, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
-								.addGroup(gl_panelOutputs.createSequentialGroup()
-									.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 84, GroupLayout.PREFERRED_SIZE)
-									.addGap(3)))
-							.addPreferredGap(ComponentPlacement.RELATED)
+								.addComponent(lblNc, GroupLayout.PREFERRED_SIZE, 49, GroupLayout.PREFERRED_SIZE)
+								.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING, false)
+									.addComponent(lblWc, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+									.addComponent(lblP, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+									.addComponent(lblV, GroupLayout.DEFAULT_SIZE, 59, Short.MAX_VALUE)))
 							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(lblO3Value, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+								.addComponent(lblWcValue, GroupLayout.DEFAULT_SIZE, 92, Short.MAX_VALUE)
 								.addComponent(lblNcValue, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(lblWcValue, GroupLayout.DEFAULT_SIZE, 67, Short.MAX_VALUE))
-							.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
-								.addComponent(lblH, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(lblP, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(lblV, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 59, Short.MAX_VALUE))
+								.addComponent(lblVValue, GroupLayout.DEFAULT_SIZE, 88, Short.MAX_VALUE)
+								.addComponent(lblPValue, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
 							.addPreferredGap(ComponentPlacement.RELATED)
-							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.TRAILING)
-								.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblPValue, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblHValue, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE))
-							.addGap(36))
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(lblDist, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
+									.addPreferredGap(ComponentPlacement.RELATED)
+									.addComponent(lblXValue, GroupLayout.DEFAULT_SIZE, 76, Short.MAX_VALUE))
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(lblF, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
+									.addPreferredGap(ComponentPlacement.RELATED)
+									.addComponent(lblFValue, GroupLayout.DEFAULT_SIZE, 86, Short.MAX_VALUE))
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(lblH)
+									.addGap(18)
+									.addComponent(lblEtaValue, GroupLayout.DEFAULT_SIZE, 79, Short.MAX_VALUE))
+								.addGroup(gl_panelOutputs.createSequentialGroup()
+									.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 40, GroupLayout.PREFERRED_SIZE)
+									.addPreferredGap(ComponentPlacement.RELATED)
+									.addComponent(lblTmaxValue, GroupLayout.DEFAULT_SIZE, 76, Short.MAX_VALUE))))
 						.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, 299, GroupLayout.PREFERRED_SIZE))
 					.addContainerGap())
 		);
@@ -495,32 +576,38 @@ public class CarApplet extends JApplet implements Runnable {
 			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
 					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGap(20)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-							.addGap(11)
-							.addComponent(lblPValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-							.addGap(11)
-							.addComponent(lblHValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addComponent(lblWc)
 							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addComponent(lblNc, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+							.addComponent(lblNc, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addComponent(lblWcValue)
 							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addComponent(lblNcValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addComponent(lblO3Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+							.addComponent(lblNcValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
-							.addComponent(lblV, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-							.addGap(11)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+								.addComponent(lblH, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblEtaValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+								.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addComponent(lblTmaxValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))))
+					.addGap(11)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(lblV, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblF, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblFValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+					.addGap(11)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(lblDist, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 							.addComponent(lblP, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-							.addGap(11)
-							.addComponent(lblH, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))))
+							.addComponent(lblPValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+						.addComponent(lblXValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+					.addContainerGap(30, Short.MAX_VALUE))
 		);
 		panelOutputs.setLayout(gl_panelOutputs);
 
@@ -535,8 +622,8 @@ public class CarApplet extends JApplet implements Runnable {
 				.addGroup(gl_panel_control.createSequentialGroup()
 					.addContainerGap()
 					.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
+						.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 300, GroupLayout.PREFERRED_SIZE)
 						.addComponent(panelInputs, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 300, Short.MAX_VALUE)
-						.addComponent(panelOutputs, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 300, GroupLayout.PREFERRED_SIZE)
 						.addComponent(panel_6, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
 						.addComponent(panelLicense, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE))
 					.addContainerGap())
@@ -545,10 +632,10 @@ public class CarApplet extends JApplet implements Runnable {
 			gl_panel_control.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panel_control.createSequentialGroup()
 					.addContainerGap()
-					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 230, GroupLayout.PREFERRED_SIZE)
-					.addGap(18)
-					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 165, Short.MAX_VALUE)
+					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 211, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panelOutputs, GroupLayout.DEFAULT_SIZE, 184, Short.MAX_VALUE)
+					.addGap(18)
 					.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 74, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(panelLicense, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
@@ -658,31 +745,19 @@ public class CarApplet extends JApplet implements Runnable {
 		sliderVcar.setValue(120);
 		sliderVcar.setMinorTickSpacing(1);
 		
-		JLabel lblA = new JLabel("A");
-		lblA.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		lblAValue = new JLabel("0.15");
-		lblAValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
-		
-		sliderA = new JSlider();
-		sliderA.setMinimum(10);
-		sliderA.setMaximum(20);
-		sliderA.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent e) {
+		sliderQc = new JSlider();
+		sliderQc.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
 				sliderI5Event();
 			}
 		});
-		sliderA.setValue(15);
-		sliderA.setMinorTickSpacing(1);
-		
-		sliderQc = new JSlider();
 		sliderQc.setMaximum(1500);
 		sliderQc.setMinimum(500);
 		sliderQc.setValue(600);
 		sliderQc.setMinorTickSpacing(100);
 
 		
-		JLabel lblQcValue = new JLabel("600");
+		lblQcValue = new JLabel("600");
 		lblQcValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel lblQc = new JLabel("Qc");
@@ -702,32 +777,26 @@ public class CarApplet extends JApplet implements Runnable {
 							.addPreferredGap(ComponentPlacement.RELATED, 24, Short.MAX_VALUE)
 							.addComponent(lblQcValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
 							.addGap(18)
-							.addComponent(sliderQc, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))
+							.addComponent(sliderQc, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED))
 						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
-								.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-									.addGroup(gl_panelInputs.createSequentialGroup()
-										.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-											.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING, false)
-												.addComponent(lblR, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-												.addComponent(lblVa, GroupLayout.DEFAULT_SIZE, 62, Short.MAX_VALUE))
-											.addComponent(lblIVcar, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE))
-										.addGap(18))
-									.addGroup(gl_panelInputs.createSequentialGroup()
-										.addComponent(lblA, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
-										.addPreferredGap(ComponentPlacement.RELATED)))
+							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 								.addGroup(gl_panelInputs.createSequentialGroup()
-									.addComponent(lblMg, GroupLayout.DEFAULT_SIZE, 67, Short.MAX_VALUE)
-									.addGap(18)))
+									.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
+										.addComponent(lblMg, GroupLayout.DEFAULT_SIZE, 67, Short.MAX_VALUE)
+										.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+											.addComponent(lblVa, GroupLayout.PREFERRED_SIZE, 62, GroupLayout.PREFERRED_SIZE)
+											.addComponent(lblIVcar, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 67, GroupLayout.PREFERRED_SIZE)))
+									.addGap(18))
+								.addGroup(gl_panelInputs.createSequentialGroup()
+									.addComponent(lblR, GroupLayout.DEFAULT_SIZE, 79, Short.MAX_VALUE)
+									.addPreferredGap(ComponentPlacement.RELATED)))
 							.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
 								.addGroup(gl_panelInputs.createSequentialGroup()
 									.addComponent(lblVcarValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
 									.addGap(18)
-									.addComponent(sliderVcar, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))
-								.addGroup(gl_panelInputs.createSequentialGroup()
-									.addComponent(lblAValue, GroupLayout.PREFERRED_SIZE, 56, GroupLayout.PREFERRED_SIZE)
-									.addGap(18)
-									.addComponent(sliderA, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))
+									.addComponent(sliderVcar, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE)
+									.addPreferredGap(ComponentPlacement.RELATED))
 								.addGroup(gl_panelInputs.createSequentialGroup()
 									.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
 										.addComponent(lblVaValue, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
@@ -739,9 +808,7 @@ public class CarApplet extends JApplet implements Runnable {
 										.addComponent(sliderR, 0, 0, Short.MAX_VALUE)
 										.addComponent(sliderMg, GroupLayout.PREFERRED_SIZE, 88, GroupLayout.PREFERRED_SIZE))))))
 					.addGap(48))
-				.addGroup(Alignment.LEADING, gl_panelInputs.createSequentialGroup()
-					.addComponent(panelTitle, GroupLayout.DEFAULT_SIZE, 305, Short.MAX_VALUE)
-					.addContainerGap())
+				.addComponent(panelTitle, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 315, Short.MAX_VALUE)
 		);
 		gl_panelInputs.setVerticalGroup(
 			gl_panelInputs.createParallelGroup(Alignment.LEADING)
@@ -755,37 +822,30 @@ public class CarApplet extends JApplet implements Runnable {
 								.addComponent(sliderVa, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 							.addPreferredGap(ComponentPlacement.RELATED)
 							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-								.addComponent(lblRValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+									.addComponent(lblRValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+									.addComponent(lblR))
 								.addComponent(sliderR, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 							.addGap(11)
 							.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-								.addComponent(lblMgValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+								.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
+									.addComponent(lblMgValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+									.addComponent(lblMg))
 								.addComponent(sliderMg, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)))
-						.addGroup(gl_panelInputs.createSequentialGroup()
-							.addComponent(lblVa)
-							.addGap(12)
-							.addComponent(lblR)
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(lblMg)))
-					.addGap(12)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(lblVa))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
 						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
 							.addComponent(lblVcarValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
 							.addComponent(lblIVcar, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
 						.addComponent(sliderVcar, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addGroup(gl_panelInputs.createParallelGroup(Alignment.TRAILING)
 						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-							.addComponent(lblAValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-							.addComponent(lblA, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-						.addComponent(sliderA, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(5)
-					.addGroup(gl_panelInputs.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_panelInputs.createParallelGroup(Alignment.BASELINE)
-							.addComponent(lblQcValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-							.addComponent(lblQc, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+							.addComponent(lblQc, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+							.addComponent(lblQcValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
 						.addComponent(sliderQc, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-					.addGap(203))
+					.addGap(3))
 		);
 
 		JLabel lblDatosDeEntrada = new JLabel("Datos de Entrada");
@@ -843,12 +903,10 @@ public class CarApplet extends JApplet implements Runnable {
 				GroupLayout gl_panel_2 = new GroupLayout(panel_2);
 				gl_panel_2.setHorizontalGroup(
 					gl_panel_2.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 272, Short.MAX_VALUE)
-						.addComponent(panelMotor, GroupLayout.DEFAULT_SIZE, 272, Short.MAX_VALUE)
+						.addComponent(panelMotor, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 268, Short.MAX_VALUE)
 				);
 				gl_panel_2.setVerticalGroup(
 					gl_panel_2.createParallelGroup(Alignment.LEADING)
-						.addGap(0, 241, Short.MAX_VALUE)
 						.addGroup(gl_panel_2.createSequentialGroup()
 							.addComponent(panelMotor, GroupLayout.PREFERRED_SIZE, 241, GroupLayout.PREFERRED_SIZE)
 							.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -856,12 +914,12 @@ public class CarApplet extends JApplet implements Runnable {
 				panel_2.setLayout(gl_panel_2);
 				GroupLayout gl_panel = new GroupLayout(panel);
 				gl_panel.setHorizontalGroup(
-					gl_panel.createParallelGroup(Alignment.LEADING)
-						.addGroup(Alignment.TRAILING, gl_panel.createSequentialGroup()
+					gl_panel.createParallelGroup(Alignment.TRAILING)
+						.addGroup(gl_panel.createSequentialGroup()
 							.addContainerGap()
-							.addComponent(panel_1, GroupLayout.DEFAULT_SIZE, 314, Short.MAX_VALUE)
-							.addPreferredGap(ComponentPlacement.UNRELATED)
-							.addComponent(panel_2, GroupLayout.PREFERRED_SIZE, 324, GroupLayout.PREFERRED_SIZE)
+							.addComponent(panel_1, GroupLayout.DEFAULT_SIZE, 384, Short.MAX_VALUE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(panel_2, GroupLayout.PREFERRED_SIZE, 258, GroupLayout.PREFERRED_SIZE)
 							.addContainerGap())
 				);
 				gl_panel.setVerticalGroup(

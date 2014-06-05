@@ -65,9 +65,10 @@ public class CarModel extends Model {
 	
 	//Constants
 
-
+	int vueltas = 0;
+	
 	//Input parameters
-	private double Va, r, mg, Vcar, a, Qc;
+	private double Va, r, mg, Vcar, Qc;
 
 	//Outputs
 	private double Wc, Wt, eta, nciclos, Tmax, h, x, F, tiempo;
@@ -75,17 +76,19 @@ public class CarModel extends Model {
 	//Calculated parameters
 	double P, Pa, Pmax; //Pa es de entrada o cual es?
 	double V, V1, V2;
+	
+	double a = 0.20;
 
 	//Aux
 	double temp1, temp2, temp3, temp4, temp5;
 
+	//Salidas eta, Tmax, F, x,
 
-	public CarModel(double Va, double r, double mg, double Vcar, double a, double Qc){ 
+	public CarModel(double Va, double r, double mg, double Vcar, double Qc){ 
 		this.Va = Va/1000.0;
 		this.r = r;
 		this.mg = mg;
 		this.Vcar = Vcar;
-		this.a = a;
 		this.Qc = Qc;
 
 		//Parametros calculados iniciales
@@ -105,13 +108,39 @@ public class CarModel extends Model {
 		
 		currentPhase = PHASE_1;
 		
-		Point2D point = new Point2D.Double(V1*1000, Pa);
+		Point2D point = new Point2D.Double(V1*1000, Pa/Math.pow(10.0, 5.0));
 		chart1.add(point);
+	}
+
+
+	public double getEta() {
+		return eta;
+	}
+
+
+	public double getTmax() {
+		return Tmax;
+	}
+
+
+	public double getF() {
+		return F;
 	}
 
 
 	public double getWc() {
 		return Wc;
+	}
+
+	
+
+	public double getPa() {
+		return Pa/Math.pow(10.0, 5.0);
+	}
+
+
+	public double getPmax() {
+		return Pmax/Math.pow(10.0, 5.0);
 	}
 
 
@@ -131,9 +160,16 @@ public class CarModel extends Model {
 
 
 	public double getH() {
-		return h;
+		return h = V/(Math.PI*Math.pow(a, 2.0));
+	}
+	
+	public double getHMax(){
+		return Va/(Math.PI*Math.pow(a, 2.0));
 	}
 
+	public double getHMin(){
+		return V2/(Math.PI*Math.pow(a, 2.0));
+	}
 
 	public void setH(double h) {
 		this.h = h;
@@ -141,7 +177,7 @@ public class CarModel extends Model {
 
 
 	public double getP() {
-		return P;
+		return P/Math.pow(10.0, 5.0);
 	}
 
 
@@ -159,7 +195,8 @@ public class CarModel extends Model {
 		V = v;
 	}
 
-
+	
+	
 	@Override
 	public void simulate() {
 		if(incrementTime()){
@@ -170,6 +207,26 @@ public class CarModel extends Model {
 			addPoint();
 		}
 	}
+
+	public double getV1() {
+		return V1*1000;
+	}
+
+
+	public void setV1(double v1) {
+		V1 = v1;
+	}
+
+
+	public double getV2() {
+		return V2*1000;
+	}
+
+
+	public void setV2(double v2) {
+		V2 = v2;
+	}
+
 
 	private void calculateV(){
 		switch(currentPhase){
@@ -189,7 +246,7 @@ public class CarModel extends Model {
 	}
 	
 	private void addPoint(){
-		Point2D point = new Point2D.Double(V*1000, P);
+		Point2D point = new Point2D.Double(V*1000, P/Math.pow(10.0, 5.0));
 		currentPoint = point;
 		
 		if(isRound1){
@@ -267,10 +324,38 @@ public class CarModel extends Model {
 			break;
 		case PHASE_4:
 			jumpToPhase(PHASE_1);
+			vueltas++;
 			break;
 		}
+		addPoint();
 	}
 
+	
+
+
+	public int getCurrentPhase() {
+		return currentPhase;
+	}
+
+
+	public void setCurrentPhase(int currentPhase) {
+		this.currentPhase = currentPhase;
+	}
+
+
+	public int getVueltas() {
+		return vueltas;
+	}
+
+
+	public void setVueltas(int vueltas) {
+		this.vueltas = vueltas;
+	}
+
+
+	public double getX() {
+		return x;
+	}
 
 
 	public void jumpToPhase(int phase) {
