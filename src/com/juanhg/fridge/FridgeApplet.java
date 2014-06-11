@@ -78,7 +78,8 @@ public class FridgeApplet extends JApplet implements Runnable {
 
 	//Inputs
 	double P, T1, T2, Qo;
-	int type, n, phase;
+	int type = 1;
+	int n, phase;
 
 	//Thread that executed the simulation
 	private Thread flujo = null;
@@ -104,8 +105,8 @@ public class FridgeApplet extends JApplet implements Runnable {
 	XYAnnotation exampleAnnotation = null;
 
 	//Labels
-	private JLabel lblO1Value;  
-	private JLabel lblT1Value, lblT2Value, lblPValue, lblO2Value, lblQcValue;
+	private JLabel lblTValue;  
+	private JLabel lblT1Value, lblT2Value, lblPValue, lblEValue, lblQcValue, lblOffValue;
 	private JLabel lblO1;
 
 	//Sliders
@@ -164,7 +165,7 @@ public class FridgeApplet extends JApplet implements Runnable {
 		//1-5
 		double dynamicF;
 		if(sliderT2.getValueIsAdjusting()){
-			dynamicF = (double) sliderT2.getValue();
+			dynamicF = -(double) sliderT2.getValue();
 			lblT2Value.setText("" + dynamicF);
 		}
 	}
@@ -191,7 +192,7 @@ public class FridgeApplet extends JApplet implements Runnable {
 
 
 			this.readInputs();
-			this.initSimulation();
+			this.finishSimulation();
 
 			btnLaunchSimulation.setText("Iniciar");
 
@@ -369,7 +370,9 @@ public class FridgeApplet extends JApplet implements Runnable {
 			break;
 		}
 
-		chartfridge.setImageAtPoint(image, point);
+		if(n > 0){
+			chartfridge.setImageAtPoint(image, point);
+		}
 		repaint();
 	}
 
@@ -397,6 +400,9 @@ public class FridgeApplet extends JApplet implements Runnable {
 			model.simulate();
 			//End Step of simulation
 
+			lblTValue.setText(dToString(model.getT(), 6));
+			lblEValue.setText(dToString(model.getE(), 6));
+			lblOffValue.setText(dToString(model.getTd(), 6));
 
 			this.updatePanels();
 			repaint();
@@ -417,18 +423,15 @@ public class FridgeApplet extends JApplet implements Runnable {
 	private void readInputs(){
 		P = sliderP.getValue();
 		T1 = sliderT1.getValue();
-		T2 = sliderT2.getValue();
+		T2 = -sliderT2.getValue();
 		Qo = sliderQc.getValue();
 	}
 
-	//Init the elements of the simulation
-	private void initSimulation(){
-
+	private void finishSimulation(){
 		Point2D [] nullArray = new Point2D[0];
 
 		//Crear modelo
 		model = new FridgeModel(T1, T2, P, Qo, type, n, phase);
-
 		// Inicializar charts
 		chartfridge = new Grafica(nullArray,"", "", "V", "P", false, Color.BLUE,1f,false);
 		chartfridge.setRangeAxis(infXLimit, supXLimit, infYLimit, supYLimit);
@@ -441,16 +444,62 @@ public class FridgeApplet extends JApplet implements Runnable {
 		milkImage = loadImage(milk);
 		metalImage = loadImage(metal);
 
+		//Set Images  
+		chartfridge.setImageAtPoint(fridgeImage, (infXLimit+supXLimit)/2.0, (infYLimit + supYLimit)/2.0);	
+
 		btnMilk.setEnabled(false);
 		btnFish.setEnabled(false);
 		btnMetal.setEnabled(false);
 		btn1.setEnabled(false);
 		btn2.setEnabled(true);
+		phase = 1;
 
 		n = 0;
 
-		//Set Images  
-		chartfridge.setImageAtPoint(fridgeImage, (infXLimit+supXLimit)/2.0, (infYLimit + supYLimit)/2.0);
+		lblTValue.setText("-");
+		lblEValue.setText("-");
+		lblOffValue.setText("-");
+		
+		//Actualize panels
+		updatePanels();
+		repaint();
+	}
+
+	//Init the elements of the simulation
+	private void initSimulation(){
+
+		Point2D [] nullArray = new Point2D[0];
+
+		if(model == null){
+			//Crear modelo
+			model = new FridgeModel(T1, T2, P, Qo, type, n, phase);
+			// Inicializar charts
+			chartfridge = new Grafica(nullArray,"", "", "V", "P", false, Color.BLUE,1f,false);
+			chartfridge.setRangeAxis(infXLimit, supXLimit, infYLimit, supYLimit);
+			chartfridge.fijaFondo(Color.WHITE);
+			chartfridge.setAxisVisible(false);
+
+			//Load Images
+			fridgeImage = loadImage(fridge);
+			fishImage = loadImage(fish);
+			milkImage = loadImage(milk);
+			metalImage = loadImage(metal);
+
+			//Set Images  
+			chartfridge.setImageAtPoint(fridgeImage, (infXLimit+supXLimit)/2.0, (infYLimit + supYLimit)/2.0);	
+		}
+		else{
+			model.restart(T1, T2, P, Qo, type, n, phase);
+		}
+
+		btnMilk.setEnabled(false);
+		btnFish.setEnabled(false);
+		btnMetal.setEnabled(false);
+		btn1.setEnabled(false);
+		btn2.setEnabled(true);
+		phase = 1;
+
+		n = 0;
 
 		//Actualize panels
 		updatePanels();
@@ -513,47 +562,64 @@ public class FridgeApplet extends JApplet implements Runnable {
 		labelOutputData.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		panelTitleOutputs.add(labelOutputData);
 
-		lblO1 = new JLabel("Tiempo:");
+		lblO1 = new JLabel("Tiempo On:");
 		lblO1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblO1Value = new JLabel();
-		lblO1Value.setText("0");
-		lblO1Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTValue = new JLabel();
+		lblTValue.setText("0");
+		lblTValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 		JLabel lblO2 = new JLabel("Eficiencia:");
 		lblO2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblO2Value = new JLabel();
-		lblO2Value.setText("0");
-		lblO2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblEValue = new JLabel();
+		lblEValue.setText("0");
+		lblEValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		JLabel lblTiempoOff = new JLabel("Tiempo Off:");
+		lblTiempoOff.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		
+		lblOffValue = new JLabel();
+		lblOffValue.setText("0");
+		lblOffValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
-				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
-				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 344, Short.MAX_VALUE)
+			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+				.addComponent(panelTitleOutputs, GroupLayout.DEFAULT_SIZE, 351, Short.MAX_VALUE)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-						.addGap(22)
-						.addComponent(lblO1, GroupLayout.PREFERRED_SIZE, 70, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.UNRELATED)
-						.addComponent(lblO1Value, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED)
+					.addGap(22)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 						.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 65, GroupLayout.PREFERRED_SIZE)
-						.addGap(32))
-				);
+						.addComponent(lblO1, GroupLayout.PREFERRED_SIZE, 77, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(lblEValue, GroupLayout.PREFERRED_SIZE, 65, GroupLayout.PREFERRED_SIZE)
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addComponent(lblTValue, GroupLayout.PREFERRED_SIZE, 52, GroupLayout.PREFERRED_SIZE)
+							.addGap(31)
+							.addComponent(lblTiempoOff, GroupLayout.PREFERRED_SIZE, 77, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(lblOffValue, GroupLayout.DEFAULT_SIZE, 62, Short.MAX_VALUE)))
+					.addContainerGap())
+		);
 		gl_panelOutputs.setVerticalGroup(
-				gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+			gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_panelOutputs.createSequentialGroup()
-						.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.UNRELATED)
-						.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
+					.addComponent(panelTitleOutputs, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
+						.addComponent(lblOffValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblTiempoOff, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
+						.addGroup(gl_panelOutputs.createSequentialGroup()
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 								.addComponent(lblO1)
-								.addComponent(lblO1Value)
+								.addComponent(lblTValue))
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 								.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-								.addGap(68))
-				);
+								.addComponent(lblEValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)))))
+		);
 		panelOutputs.setLayout(gl_panelOutputs);
 
 		JPanel panelLicense = new JPanel();
@@ -563,29 +629,29 @@ public class FridgeApplet extends JApplet implements Runnable {
 		panel_6.setBorder(new LineBorder(new Color(0, 0, 0)));
 		GroupLayout gl_panel_control = new GroupLayout(panel_control);
 		gl_panel_control.setHorizontalGroup(
-				gl_panel_control.createParallelGroup(Alignment.TRAILING)
-				.addGroup(gl_panel_control.createSequentialGroup()
-						.addContainerGap()
-						.addGroup(gl_panel_control.createParallelGroup(Alignment.TRAILING)
-								.addComponent(panelInputs, Alignment.LEADING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
-								.addComponent(panelOutputs, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-								.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
-								.addComponent(panelLicense, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
-								.addContainerGap())
-				);
+			gl_panel_control.createParallelGroup(Alignment.TRAILING)
+				.addGroup(Alignment.LEADING, gl_panel_control.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(gl_panel_control.createParallelGroup(Alignment.LEADING)
+						.addComponent(panelOutputs, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+						.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
+						.addComponent(panel_6, Alignment.TRAILING, GroupLayout.PREFERRED_SIZE, 346, Short.MAX_VALUE)
+						.addComponent(panelLicense, GroupLayout.DEFAULT_SIZE, 346, Short.MAX_VALUE))
+					.addContainerGap())
+		);
 		gl_panel_control.setVerticalGroup(
-				gl_panel_control.createParallelGroup(Alignment.TRAILING)
+			gl_panel_control.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_panel_control.createSequentialGroup()
-						.addContainerGap()
-						.addComponent(panelInputs, GroupLayout.DEFAULT_SIZE, 328, Short.MAX_VALUE)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 77, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 76, GroupLayout.PREFERRED_SIZE)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(panelLicense, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addGap(24))
-				);
+					.addContainerGap()
+					.addComponent(panelInputs, GroupLayout.PREFERRED_SIZE, 305, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panelOutputs, GroupLayout.PREFERRED_SIZE, 100, Short.MAX_VALUE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panel_6, GroupLayout.PREFERRED_SIZE, 76, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(panelLicense, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addGap(24))
+		);
 
 		btnLaunchSimulation = new JButton("Iniciar");
 		btnLaunchSimulation.setFont(new Font("Tahoma", Font.PLAIN, 16));
@@ -626,21 +692,22 @@ public class FridgeApplet extends JApplet implements Runnable {
 		JPanel panelTitle = new JPanel();
 		panelTitle.setBorder(new BevelBorder(BevelBorder.RAISED, null, null, null, null));
 
-		lblT1Value = new JLabel("5");
+		lblT1Value = new JLabel("20");
 		lblT1Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblT2Value = new JLabel("5");
+		lblT2Value = new JLabel("-15");
 		lblT2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 
-		lblPValue = new JLabel("5");
+		lblPValue = new JLabel("700");
 		lblPValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 
 		sliderP = new JSlider();
-		sliderP.setMaximum(10);
-		sliderP.setMinorTickSpacing(1);
-		sliderP.setValue(5);
+		sliderP.setMinimum(500);
+		sliderP.setMaximum(1000);
+		sliderP.setMinorTickSpacing(50);
+		sliderP.setValue(700);
 		sliderP.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
 				sliderI1Event();
@@ -649,9 +716,10 @@ public class FridgeApplet extends JApplet implements Runnable {
 
 
 		sliderT1 = new JSlider();
-		sliderT1.setMaximum(10);
+		sliderT1.setMinimum(18);
+		sliderT1.setMaximum(30);
 		sliderT1.setMinorTickSpacing(1);
-		sliderT1.setValue(5);
+		sliderT1.setValue(20);
 		sliderT1.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				sliderI2Event();
@@ -662,8 +730,9 @@ public class FridgeApplet extends JApplet implements Runnable {
 
 
 		sliderT2 = new JSlider();
-		sliderT2.setMaximum(10);
-		sliderT2.setValue(5);
+		sliderT2.setMinimum(10);
+		sliderT2.setMaximum(30);
+		sliderT2.setValue(15);
 		sliderT2.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				sliderI3Event();
@@ -673,17 +742,18 @@ public class FridgeApplet extends JApplet implements Runnable {
 		JLabel lblQo = new JLabel("Qo");
 		lblQo.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblQcValue = new JLabel("5");
+		lblQcValue = new JLabel("25");
 		lblQcValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
 		sliderQc = new JSlider();
-		sliderQc.setMaximum(10);
+		sliderQc.setMinimum(10);
+		sliderQc.setMaximum(50);
 		sliderQc.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				sliderI4Event();
 			}
 		});
-		sliderQc.setValue(5);
+		sliderQc.setValue(25);
 		sliderQc.setMinorTickSpacing(1);
 
 		btn1 = new JButton("1");
@@ -695,6 +765,9 @@ public class FridgeApplet extends JApplet implements Runnable {
 				btnMetal.setEnabled(false);
 				btn1.setEnabled(false);
 				btn2.setEnabled(true);
+				sliderQc.setEnabled(true);
+				lblQcValue.setText(""+sliderQc.getValue());
+
 			}
 		});
 
@@ -706,6 +779,10 @@ public class FridgeApplet extends JApplet implements Runnable {
 				btnMetal.setEnabled(true);
 				btn1.setEnabled(true);
 				btn2.setEnabled(false);
+				phase = 2;
+				sliderQc.setEnabled(false);
+				lblQcValue.setText("-");
+
 			}
 		});
 		btn2.setFont(new Font("Tahoma", Font.PLAIN, 21));

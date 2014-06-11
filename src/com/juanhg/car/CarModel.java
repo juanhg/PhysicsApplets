@@ -28,7 +28,6 @@
 package com.juanhg.car;
 
 import java.awt.geom.Point2D;
-import java.awt.geom.Point2D.Double;
 import java.util.ArrayList;
 import java.util.List;
 

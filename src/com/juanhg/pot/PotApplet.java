@@ -274,6 +274,12 @@ public class PotApplet extends JApplet implements Runnable {
 			sliderType.setEnabled(buttonsOn);
 			sliderV.setEnabled(buttonsOn);
 			sliderMc.setEnabled(buttonsOn);
+			btn1.setEnabled(false);
+			btn2.setEnabled(buttonsOn);
+			btn3.setEnabled(buttonsOn);
+			
+	
+
 
 			repaint();
 
@@ -297,6 +303,10 @@ public class PotApplet extends JApplet implements Runnable {
 			sliderType.setEnabled(buttonsOn);
 			sliderV.setEnabled(buttonsOn);
 			sliderMc.setEnabled(buttonsOn);
+			
+			btn1.setEnabled(buttonsOn);
+			btn2.setEnabled(buttonsOn);
+			btn3.setEnabled(buttonsOn);
 
 			flujo.start();
 		}

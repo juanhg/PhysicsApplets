@@ -266,7 +266,7 @@ public class CarApplet extends JApplet implements Runnable {
 		lblWcValue.setText(dToString(model.getWc(), precision));
 		lblNcValue.setText(dToString(model.getNciclos(), precision));
 		lblFValue.setText(dToString(model.getF(), precision));
-		lblXValue.setText(dToString(model.getX(), precision+1));
+		lblXValue.setText(dToString(model.getX()/1000.0, precision+1));
 		lblEtaValue.setText(dToString(model.getEta(), precision));
 		lblTmaxValue.setText(dToString(model.getTmax(), precision));
 
@@ -435,6 +435,7 @@ public class CarApplet extends JApplet implements Runnable {
 			liquidColor = new Color(255,100,100,150);
 		}
 		double currentH = normalize(model.getH(), model.getHMin(), model.getHMax(), 0.5, 6.5);
+		currentH = 7 - currentH;
 		
 		chartPiston.deleteAnnotation(liquidAnnotation);
 		liquidAnnotation = chartPiston.drawBox(2.8,currentH-0.2,5,7.5,null, null, liquidColor);
