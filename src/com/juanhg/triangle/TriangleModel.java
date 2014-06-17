@@ -45,21 +45,21 @@ public class TriangleModel extends Model {
 	private final int ESFERA = 2;
 	private final int CUBO = 3;
 
-
-	private double currentTime;
+	private double dt = 0.01;
+	private double currentTime = 0;
 
 	//Constants
 	final double r = 0.5;
 	final double l = 0.5;
 	final double M = 20;
 	final double g = 9.5;
-	final double A = 20;
+	final double A = 5;
 	
 
 	//Input parameters
 	private double mue, mud, m, z;
 	private int type;
-	private double W, V, T, tfinal, x, xf;
+	private double W, V, T, tfinal, x, y, X, Y, xf, phi,a;
 
 	//Calculated parameters
 	boolean movement = false;
@@ -93,9 +93,17 @@ public class TriangleModel extends Model {
 			break;
 		}
 
-		C = 20.0/Math.cos(z);
+		C = A/Math.cos(this.z);
 		xf = C-1;
-		B = xf*Math.sin(z);
+		B = C*Math.sin(this.z);
+		
+		a = (1/(m + (I/Math.pow(r, 2.0))))*(m*g*Math.sin(z) - mud*m*g*Math.cos(z));
+		T = I*a/Math.pow(r, 2.0);
+	}
+
+
+	public double getPhi() {
+		return phi;
 	}
 
 
@@ -103,7 +111,46 @@ public class TriangleModel extends Model {
 	 * Actualizes the simulation according the actual time
 	 */
 	@Override
-	public void simulate() {}
+	public void simulate() {
+		
+		if(X < xf){
+			V = a*currentTime;
+			phi = (a/(2.0*r))*Math.pow(currentTime, 2.0);
+			W = V/r;
+		
+			x = a*Math.pow(currentTime, 2.0)/2.0;
+			X = x*Math.cos(z);
+			Y = B + (l/2.0)*(Math.cos(z) - Math.sin(z)) - x*Math.sin(z);
+			
+			incrementTime();
+		}
+		else{
+			X = xf;
+			V = a*currentTime;
+			phi = (a/(2.0*r))*Math.pow(currentTime, 2.0);
+			W = V/r;
+		
+			x = a*Math.pow(currentTime, 2.0)/2.0;
+			X = x*Math.cos(z);
+			Y = B + (l/2.0)*(Math.cos(z) - Math.sin(z)) - x*Math.sin(z);
+			tfinal = currentTime;
+		}
+		
+	}
+	
+	public double getX() {
+		return X;
+	}
+
+
+	public double getY() {
+		return Y;
+	}
+
+
+	public void incrementTime(){
+		currentTime += dt;
+	}
 
 	/** GETTERS & SETTERS **/
 	
@@ -119,20 +166,48 @@ public class TriangleModel extends Model {
 		return C;
 	}
 	
+	public double getW() {
+		return W;
+	}
+
+
+	public double getV() {
+		return V;
+	}
+
+
+	public double getT() {
+		return T;
+	}
+
+
+	public double getTfinal() {
+		return tfinal;
+	}
+
+
 	public double getA(double z){
 		return getA();
 	}
 	
-	public double getB(double z){
+	public double getC(double z){
 		z = 2.0*Math.PI*z/360.0;
-		return 20.0/Math.cos(z);
+		return A/Math.cos(z);
 	}
 	
-	public double getC(double z){
-		double C = getB(z);
-		double xf = C-1;
+	public void calculatePhi(){
+		phi = (a/(2.0*r))*Math.pow(currentTime, 2.0);
+	}
+	
+	public void calculateW(){
+		W = V/r;
+	}
+	
+	public double getB(double z){
+		double C = getC(z);
+		xf = C-1;
 		z = 2.0*Math.PI*z/360.0;
-		return xf*Math.sin(z);
+		return C*Math.sin(z);
 	}
 	
 }

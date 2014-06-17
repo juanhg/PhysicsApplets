@@ -28,6 +28,7 @@
  */
 
 package com.juanhg.triangle;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
@@ -41,6 +42,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
+import javax.swing.ImageIcon;
 import javax.swing.JApplet;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -56,7 +58,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.jfree.chart.annotations.XYAnnotation;
+import org.jfree.chart.annotations.XYPolygonAnnotation;
 
+import com.juanhg.util.ImageProcessing;
 import com.raccoon.easyjchart.Grafica;
 import com.raccoon.easyjchart.JPanelGrafica;
 
@@ -66,15 +70,30 @@ public class TriangleApplet extends JApplet implements Runnable {
 	private final int ESFERA = 2;
 	private final int CUBO = 3;
 	
+	private final double xBase = -0.2;
+	private final double xPulley = -0.7;
+	private double yPulley;
+	
+	private double xBox = 0.5; 
+	private double yBox;
+	private double oYBox, oXBox;
+	
 	private static final long serialVersionUID = -3017107307819023599L;
-	private final String example = "example.png";
+	private final String base = "base.png";
+	private final String pulley1 = "pulley1.png";
+	private final String pulley2 = "pulley2.png";
+	private final String pulley3 = "pulley3.png";
+	private final String box = "box.png";
+	private final String cubo = "cubo.png";
+	private final String cilindro = "cilindro.png";
+	private final String esfera = "esfera.png";
 
 	final int pistonY0 = 3;
 	final int pistonY1 = 7;
 	int type = 1;
 	
 	//Control variables
-	long sleepTime = 300;	
+	long sleepTime = 30;	
 	boolean end = false;
 	
 	//Inputs
@@ -92,21 +111,26 @@ public class TriangleApplet extends JApplet implements Runnable {
 	//Panels
 	private JPanelGrafica panelGrafica;
 
-	int supXLimit = 22;
+	int supXLimit = 6;
 	int infXLimit = -2;
-	int supYLimit = 22;
+	int supYLimit = 11;
 	int infYLimit = -2;
 
 	//Images
-	BufferedImage exampleImage;
+	BufferedImage  baseImage, pulleyImage, boxImage, oBoxImage, pulleyImage1, pulleyImage2, pulleyImage3;
 	
 	//Annotations
 	XYAnnotation exampleAnnotation = null;
+	XYAnnotation triangleAnnotation = null;
+	XYAnnotation baseAnnotation = null;
+	XYAnnotation pulleyAnnotation = null;
+	XYAnnotation boxAnnotation = null;
+	XYAnnotation ropeAnnotation = null;
 
 	//Labels
-	private JLabel lblO1Value;  
-	private JLabel lblMudValue, lblMValue, lblMueValue, lblO2Value, lblZValue;
-	private JLabel lblO1, lblO3Value, lblO3;
+	private JLabel lblTValue, lblWValue, lblVValue, lblTfValue;  
+	private JLabel lblMudValue, lblMValue, lblMueValue, lblZValue;
+	private JLabel lblO1, lblO3;
 
 	//Sliders
 	private JSlider sliderMue, sliderMud, sliderIM, sliderZ; 
@@ -173,11 +197,11 @@ public class TriangleApplet extends JApplet implements Runnable {
 	}
 	
 	private void sliderI4Event(){
-		//6-10
-		double dynamicF;
+		double z;
 		if(sliderZ.getValueIsAdjusting()){
-			dynamicF = (double) sliderZ.getValue();
-			lblZValue.setText("" + (int)dynamicF +"º");
+			z = (double) sliderZ.getValue();
+			lblZValue.setText("" + (int)z +"º");
+			updateTriangle(z);
 		}
 	}
 	
@@ -253,6 +277,13 @@ public class TriangleApplet extends JApplet implements Runnable {
 			model.simulate();
 			//End Step of simulation
 			
+			updateBox();
+			
+			int precision = 6;
+			lblTValue.setText(dToString(model.getT(), precision));
+			lblVValue.setText(dToString(model.getV(), precision));
+			lblWValue.setText(dToString(model.getW(), precision));
+			lblTfValue.setText(dToString(model.getTfinal(), precision));
 			
 			this.updatePanels();
 			repaint();
@@ -271,10 +302,10 @@ public class TriangleApplet extends JApplet implements Runnable {
 	 * in the variable of the class 
 	 */
 	private void readInputs(){
-		mue = sliderMue.getValue();
-		mud = sliderMud.getValue();
-		m = ((double)sliderIM.getValue())/1000.0;
-		z = ((double)sliderZ.getValue())/1000.0;
+		mue =((double) sliderMue.getValue())/100.0;
+		mud = ((double)sliderMud.getValue())/100.0;
+		m = ((double)sliderIM.getValue());
+		z = ((double)sliderZ.getValue());
 	}
 
 	//Init the elements of the simulation
@@ -290,7 +321,14 @@ public class TriangleApplet extends JApplet implements Runnable {
 		chartTriangle.setRangeAxis(infXLimit, supXLimit, infYLimit, supYLimit);
 		
 		//Load Images
-		exampleImage = loadImage(example);
+		baseImage = loadImage(base);
+		pulleyImage = loadImage(pulley1);
+		pulleyImage1 = loadImage(pulley1);
+		pulleyImage2 = loadImage(pulley2);
+		pulleyImage3 = loadImage(pulley3);
+		oBoxImage = loadImage(box);
+		boxImage = loadImage(box);
+		updateTriangle(z);
 
 		//Set Images  
 
@@ -336,6 +374,77 @@ public class TriangleApplet extends JApplet implements Runnable {
 		return (x*(d-c))/(b-a) + (c*b - a*d)/(b-a);
 	}
 	
+	public void updateTriangle(double z){
+		double [] polygon = new double[6];
+		polygon[1] = polygon[0] = polygon[3] = polygon[4] = 0;
+		polygon[2] = model.getA(z);
+		polygon[5] = model.getB(z);
+		yPulley = polygon[5]+1;
+	    double yIncrement = normalize(60-z, 0, 40, 0, 0.3);
+	    double xIncrement = normalize(z, 20, 60, 0, 0.09);
+	    oYBox = yBox = model.getB(z) + yIncrement;
+	    oXBox = xBox + xIncrement;
+		
+		chartTriangle.deleteAnnotation(ropeAnnotation);
+		ropeAnnotation = chartTriangle.drawLine(xPulley, yPulley+0.5, xBox, yBox,new BasicStroke(4f), Color.BLACK);
+
+		chartTriangle.deleteAnnotation(baseAnnotation);
+		baseAnnotation = chartTriangle.setImageAtPoint(baseImage, xBase, polygon[5]-0.1);
+		
+		chartTriangle.deleteAnnotation(pulleyAnnotation);
+		pulleyAnnotation = chartTriangle.setImageAtPoint(pulleyImage(), xPulley,yPulley);
+		
+		chartTriangle.deleteAnnotation(triangleAnnotation);
+		triangleAnnotation = new XYPolygonAnnotation(polygon, new BasicStroke(2f), Color.BLACK, Color.gray);
+	    chartTriangle.setAnnotation(triangleAnnotation);
+	    
+
+	    boxImage = ImageProcessing.rotateDegrees(oBoxImage, -z);
+	    chartTriangle.deleteAnnotation(boxAnnotation);
+	    boxAnnotation = chartTriangle.setImageAtPoint(boxImage, xBox + xIncrement, yBox);
+	    
+		updatePanels();
+		repaint();
+	}
+	
+	public void updateBox(){
+		double [] polygon = new double[6];
+		polygon[1] = polygon[0] = polygon[3] = polygon[4] = 0;
+		polygon[2] = model.getA(z);
+		polygon[5] = model.getB(z);
+		yPulley = polygon[5]+1;
+	    double yIncrement = normalize(60-z, 0, 40, 0, 0.3);
+	    double xIncrement = normalize(z, 20, 60, 0, 0.09);
+	    oYBox = yBox = model.getB(z) + yIncrement;
+	    oXBox = xBox + xIncrement;
+		
+		chartTriangle.deleteAnnotation(ropeAnnotation);
+		ropeAnnotation = chartTriangle.drawLine(xPulley, yPulley+0.5, model.getX() + xBox, model.getY(),new BasicStroke(4f), Color.BLACK);
+
+		pulleyImage = ImageProcessing.rotateRadians(pulleyImage(), -model.getPhi());
+		chartTriangle.deleteAnnotation(pulleyAnnotation);
+		pulleyAnnotation = chartTriangle.setImageAtPoint(pulleyImage, xPulley,yPulley);
+		
+	    chartTriangle.deleteAnnotation(boxAnnotation);
+	    boxAnnotation = chartTriangle.setImageAtPoint(boxImage, model.getX() + xBox + xIncrement, model.getY());
+	    
+		updatePanels();
+		repaint();
+	}
+	
+	public BufferedImage pulleyImage(){
+		switch(type){
+		case CILINDRO:
+			return pulleyImage1;
+		case ESFERA:
+			return pulleyImage2;
+		case CUBO:
+			return pulleyImage3;
+		default:
+			return pulleyImage1;
+		}
+	}
+	
 	private void autogeneratedCode(){
 		JPanel panel_control = new JPanel();
 		panel_control.setBorder(new CompoundBorder(new EtchedBorder(EtchedBorder.RAISED, null, null), new BevelBorder(BevelBorder.RAISED, null, null, null, null)));
@@ -358,30 +467,30 @@ public class TriangleApplet extends JApplet implements Runnable {
 		lblO1 = new JLabel("Tensi\u00F3n:");
 		lblO1.setFont(new Font("Tahoma", Font.PLAIN, 14));
 
-		lblO1Value = new JLabel();
-		lblO1Value.setText("0");
-		lblO1Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTValue = new JLabel();
+		lblTValue.setText("0");
+		lblTValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel lblO2 = new JLabel("V:");
 		lblO2.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblO2Value = new JLabel();
-		lblO2Value.setText("0");
-		lblO2Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblVValue = new JLabel();
+		lblVValue.setText("0");
+		lblVValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		lblO3 = new JLabel("tfinal:");
 		lblO3.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		lblO3Value = new JLabel();
-		lblO3Value.setText("0");
-		lblO3Value.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblTfValue = new JLabel();
+		lblTfValue.setText("0");
+		lblTfValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		JLabel lblW = new JLabel("W:");
 		lblW.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
-		JLabel label_1 = new JLabel();
-		label_1.setText("0");
-		label_1.setFont(new Font("Tahoma", Font.PLAIN, 14));
+		lblWValue = new JLabel();
+		lblWValue.setText("0");
+		lblWValue.setFont(new Font("Tahoma", Font.PLAIN, 14));
 		
 		GroupLayout gl_panelOutputs = new GroupLayout(panelOutputs);
 		gl_panelOutputs.setHorizontalGroup(
@@ -394,18 +503,18 @@ public class TriangleApplet extends JApplet implements Runnable {
 						.addComponent(lblO1, GroupLayout.DEFAULT_SIZE, 62, Short.MAX_VALUE))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING, false)
-						.addComponent(lblO2Value, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-						.addComponent(lblO1Value, GroupLayout.DEFAULT_SIZE, 72, Short.MAX_VALUE))
+						.addComponent(lblVValue, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+						.addComponent(lblTValue, GroupLayout.DEFAULT_SIZE, 72, Short.MAX_VALUE))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addComponent(lblO3, GroupLayout.DEFAULT_SIZE, 45, Short.MAX_VALUE)
 							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(lblO3Value, GroupLayout.DEFAULT_SIZE, 115, Short.MAX_VALUE))
+							.addComponent(lblTfValue, GroupLayout.DEFAULT_SIZE, 115, Short.MAX_VALUE))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addComponent(lblW, GroupLayout.PREFERRED_SIZE, 45, GroupLayout.PREFERRED_SIZE)
 							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(label_1, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)))
+							.addComponent(lblWValue, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)))
 					.addContainerGap())
 		);
 		gl_panelOutputs.setVerticalGroup(
@@ -420,15 +529,15 @@ public class TriangleApplet extends JApplet implements Runnable {
 							.addComponent(lblO2, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
 						.addGroup(gl_panelOutputs.createSequentialGroup()
 							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
-								.addComponent(lblO1Value)
+								.addComponent(lblTValue)
 								.addComponent(lblO3, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-								.addComponent(lblO3Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+								.addComponent(lblTfValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
 							.addPreferredGap(ComponentPlacement.UNRELATED)
 							.addGroup(gl_panelOutputs.createParallelGroup(Alignment.LEADING)
 								.addGroup(gl_panelOutputs.createParallelGroup(Alignment.BASELINE)
 									.addComponent(lblW, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE)
-									.addComponent(label_1, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
-								.addComponent(lblO2Value, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))))
+									.addComponent(lblWValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))
+								.addComponent(lblVValue, GroupLayout.PREFERRED_SIZE, 17, GroupLayout.PREFERRED_SIZE))))
 					.addGap(107))
 		);
 		panelOutputs.setLayout(gl_panelOutputs);
@@ -567,33 +676,51 @@ public class TriangleApplet extends JApplet implements Runnable {
 		sliderZ.setValue(45);
 		sliderZ.setMinorTickSpacing(1);
 		
-		btnCilindro = new JButton("New button");
+		btnCilindro = new JButton(new ImageIcon(loadImage(cilindro)));
 		btnCilindro.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				type = CILINDRO;
 				btnCilindro.setEnabled(false);
 				btnEsfera.setEnabled(true);
 				btnCubo.setEnabled(true);
+				
+				chartTriangle.deleteAnnotation(pulleyAnnotation);
+				pulleyAnnotation = chartTriangle.setImageAtPoint(pulleyImage1, xPulley, yPulley);
+				
+				updatePanels();
+				repaint();
 			}
 		});
 		
-		btnEsfera = new JButton("New button");
+		btnEsfera = new JButton(new ImageIcon(loadImage(esfera)));
 		btnEsfera.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				type = ESFERA;
 				btnCilindro.setEnabled(true);
 				btnEsfera.setEnabled(false);
 				btnCubo.setEnabled(true);
+				
+				chartTriangle.deleteAnnotation(pulleyAnnotation);
+				pulleyAnnotation = chartTriangle.setImageAtPoint(pulleyImage2, xPulley, yPulley);
+			
+				updatePanels();
+				repaint();
 			}
 		});
 		
-		btnCubo = new JButton("New button");
+		btnCubo = new JButton(new ImageIcon(loadImage(cubo)));
 		btnCubo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				type = CUBO;
 				btnCilindro.setEnabled(true);
 				btnEsfera.setEnabled(true);
 				btnCubo.setEnabled(false);
+				
+				chartTriangle.deleteAnnotation(pulleyAnnotation);
+				pulleyAnnotation = chartTriangle.setImageAtPoint(pulleyImage3, xPulley, yPulley);
+			
+				updatePanels();
+				repaint();
 			}
 		});
 
@@ -719,12 +846,12 @@ public class TriangleApplet extends JApplet implements Runnable {
 					gl_panel_visualizar.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_panel_visualizar.createSequentialGroup()
 							.addContainerGap()
-							.addComponent(panel, GroupLayout.DEFAULT_SIZE, 686, Short.MAX_VALUE)
-							.addContainerGap())
+							.addComponent(panel, GroupLayout.PREFERRED_SIZE, 414, GroupLayout.PREFERRED_SIZE)
+							.addContainerGap(272, Short.MAX_VALUE))
 				);
 				gl_panel_visualizar.setVerticalGroup(
 					gl_panel_visualizar.createParallelGroup(Alignment.LEADING)
-						.addGroup(Alignment.TRAILING, gl_panel_visualizar.createSequentialGroup()
+						.addGroup(gl_panel_visualizar.createSequentialGroup()
 							.addContainerGap()
 							.addComponent(panel, GroupLayout.DEFAULT_SIZE, 546, Short.MAX_VALUE)
 							.addContainerGap())
